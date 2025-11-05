@@ -1,0 +1,9 @@
+# ChatApp - Simplified Requirements
+# Human-to-human messaging platform (no AI)
+
+flask>=2.3.0
+flask-cors
+bcrypt
+pyjwt
+python-dotenv>=1.0.0
+werkzeug

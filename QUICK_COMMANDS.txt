@@ -1,0 +1,78 @@
+========================================
+CHATAPP DEPLOYMENT - QUICK COMMANDS
+========================================
+
+STEP 1: NAVIGATE TO CHATAPP
+----------------------------
+cd C:\Users\trabc\CascadeProjects\ChatApp
+
+
+STEP 2: GENERATE SECURITY KEYS
+-------------------------------
+python -c "import secrets; print('SECRET_KEY=' + secrets.token_urlsafe(32))"
+python -c "import secrets; print('JWT_SECRET=' + secrets.token_urlsafe(32))"
+
+⚠️ SAVE THESE OUTPUTS!
+
+
+STEP 3: GIT INITIALIZATION
+---------------------------
+git init
+git add .
+git commit -m "ChatApp v1.0 - Ken Tse messaging platform"
+
+
+STEP 4: PUSH TO GITHUB
+-----------------------
+# REPLACE YOUR_USERNAME with your actual GitHub username!
+
+git remote add origin https://github.com/YOUR_USERNAME/ChatApp.git
+git branch -M main
+git push -u origin main
+
+
+STEP 5: FUTURE UPDATES
+-----------------------
+# After making code changes:
+
+git add .
+git commit -m "Describe your changes here"
+git push
+
+# Railway auto-deploys!
+
+
+STEP 6: RAILWAY ENVIRONMENT VARIABLES
+--------------------------------------
+# Add these in Railway Variables tab:
+
+SECRET_KEY=<paste-from-step-2>
+JWT_SECRET=<paste-from-step-2>
+DISABLE_AUTO_DOCS=true
+
+
+OPTIONAL: EMAIL CONFIGURATION
+------------------------------
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_app_password
+
+
+========================================
+LINKS YOU'LL NEED:
+========================================
+
+Create GitHub Repo:
+https://github.com/new
+
+Railway Signup/Login:
+https://railway.app
+
+Railway Docs:
+https://docs.railway.app
+
+
+========================================
+DONE! 🎉
+========================================

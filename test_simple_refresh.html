@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Auto-Refresh Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        .error { background: #f8d7da; color: #721c24; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        #messages { border: 1px solid #ddd; padding: 10px; min-height: 200px; margin: 10px 0; }
+        .message { padding: 8px; margin: 5px 0; border-radius: 5px; }
+        .message.user { background: #e3f2fd; text-align: right; }
+        .message.admin { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Auto-Refresh Test</h1>
+    
+    <div id="status" class="status info">
+        Status: Not started
+    </div>
+    
+    <div>
+        <h3>Step 1: Login</h3>
+        <input type="text" id="username" placeholder="Username" value="testuser1">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        <button onclick="login()">Login</button>
+    </div>
+    
+    <div>
+        <h3>Step 2: Monitor Messages</h3>
+        <p>Auto-refresh interval: <strong id="interval">Not set</strong></p>
+        <p>Last refresh: <strong id="lastRefresh">Never</strong></p>
+        <p>Message count: <strong id="msgCount">0</strong></p>
+        <button onclick="manualRefresh()">Manual Refresh</button>
+    </div>
+    
+    <h3>Messages:</h3>
+    <div id="messages">No messages loaded</div>
+    
+    <h3>Console Log:</h3>
+    <div id="console" style="background: #f5f5f5; padding: 10px; font-family: monospace; max-height: 200px; overflow-y: auto;"></div>
+    
+    <script>
+        const API_URL = 'http://localhost:5001/api';
+        let token = null;
+        let intervalId = null;
+        let messageCount = 0;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const consoleDiv = document.getElementById('console');
+            const entry = document.createElement('div');
+            entry.textContent = `[${timestamp}] ${message}`;
+            entry.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+            consoleDiv.appendChild(entry);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function setStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = `Status: ${message}`;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                log(`Attempting login as: ${username}`);
+                setStatus('Logging in...', 'info');
+                
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.token;
+                    log('✅ Login successful!', 'success');
+                    setStatus('Logged in successfully', 'success');
+                    
+                    // Start auto-refresh
+                    startAutoRefresh();
+                    
+                    // Load messages immediately
+                    loadMessages();
+                } else {
+                    log(`❌ Login failed: ${data.error}`, 'error');
+                    setStatus(`Login failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                setStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function startAutoRefresh() {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+            
+            intervalId = setInterval(loadMessages, 5000);
+            document.getElementById('interval').textContent = '5 seconds (active)';
+            log('🔄 Auto-refresh started (every 5 seconds)', 'success');
+        }
+        
+        async function loadMessages() {
+            if (!token) {
+                log('⚠️ No token, skipping message load', 'error');
+                return;
+            }
+            
+            try {
+                const now = new Date().toLocaleTimeString();
+                log(`📥 Fetching messages...`);
+                document.getElementById('lastRefresh').textContent = now;
+                
+                const response = await fetch(`${API_URL}/messages`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const messages = await response.json();
+                messageCount = messages.length;
+                document.getElementById('msgCount').textContent = messageCount;
+                
+                log(`✅ Loaded ${messageCount} messages`, 'success');
+                displayMessages(messages);
+                
+                setStatus(`Active - ${messageCount} messages loaded`, 'success');
+            } catch (error) {
+                log(`❌ Failed to load messages: ${error.message}`, 'error');
+                setStatus(`Error loading messages: ${error.message}`, 'error');
+            }
+        }
+        
+        function displayMessages(messages) {
+            const container = document.getElementById('messages');
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<em>No messages yet</em>';
+                return;
+            }
+            
+            container.innerHTML = messages.map(msg => {
+                const time = new Date(msg.timestamp).toLocaleTimeString();
+                const sender = msg.sender_type === 'user' ? 'You' : 'Ken Tse';
+                return `
+                    <div class="message ${msg.sender_type}">
+                        <strong>${sender}</strong> (${time})<br>
+                        ${msg.message || '<em>Attachment</em>'}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function manualRefresh() {
+            log('🔄 Manual refresh triggered');
+            loadMessages();
+        }
+        
+        log('Test page loaded. Please login to start.');
+    </script>
+</body>
+</html>

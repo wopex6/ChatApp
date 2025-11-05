@@ -1,0 +1,3326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp - Message Ken Tse</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            max-height: 800px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            display: none;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 40px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .auth-section {
+            max-width: 400px;
+            margin: 0 auto;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            margin-top: 10px;
+        }
+
+        .chat-section {
+            display: none;
+            flex: 1;
+            min-height: 0;
+        }
+        
+        .chat-section[style*="display: block"],
+        .chat-section[style*="display: flex"] {
+            display: flex !important;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            height: 100%;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 2px solid #e1e8ed;
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .chat-header h2 {
+            color: #333;
+        }
+
+        .btn-logout {
+            background: #f5576c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .messages-container {
+            flex: 1;
+            min-height: 50vh;
+            overflow-y: auto;
+            overflow-x: visible;
+            padding: 20px 16px;
+            background: #E5DDD5;
+            border-radius: 0;
+            margin: 0;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 60%;
+            word-wrap: break-word;
+            display: inline-block;
+            width: fit-content;
+            box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+            position: relative;
+        }
+        
+        .message-wrapper .message {
+            position: relative;
+        }
+
+        .message.received {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            align-self: flex-start;
+        }
+
+        .message.sent-by-me {
+            background: #DCF8C6;
+            color: #000;
+            border-bottom-right-radius: 2px;
+            margin-left: auto;
+            float: right;
+            clear: both;
+        }
+        
+        .message.sent-by-me.unread {
+            background: #FFFF00;
+        }
+
+        .message.sent-by-other {
+            background: #FFFFFF;
+            border: none;
+            border-bottom-left-radius: 2px;
+            color: #000;
+            float: left;
+            clear: both;
+        }
+
+        .message-sender {
+            font-size: 0.85em;
+            opacity: 0.8;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .message-time {
+            font-size: 0.7em;
+            color: rgba(0,0,0,0.45);
+            margin-left: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .message-tick {
+            display: inline-block;
+            font-size: 0.85em;
+            color: #8696a0;
+        }
+        
+        .message.sent-by-me .message-tick {
+            color: #8696a0;
+        }
+
+        .date-separator {
+            text-align: center;
+            margin: 20px 0;
+            color: #8696a0;
+            font-size: 0.8em;
+            font-weight: 500;
+            background: rgba(255,255,255,0.9);
+            padding: 5px 12px;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+        }
+
+        .message-input-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .message-input-wrapper {
+            flex: 1;
+        }
+
+        .message-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s;
+            resize: none;
+            min-height: 45px;
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.5;
+            font-family: inherit;
+        }
+        
+        .message-input::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .message-input::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .message-input::-webkit-scrollbar-thumb {
+            background: #8696a0;
+            border-radius: 3px;
+        }
+        
+        .message-input::-webkit-scrollbar-thumb:hover {
+            background: #667781;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e1e8ed;
+            position: sticky;
+            bottom: 0;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+        
+        .input-actions {
+            display: flex;
+            gap: 2.5px !important;
+            align-items: center;
+        }
+
+        .btn-send {
+            padding: 8px;
+            background: transparent;
+            color: #667eea;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-send:hover {
+            transform: scale(1.1);
+        }
+
+        .btn-attachment {
+            padding: 8px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .btn-attachment:hover {
+            background: #f0f3f5;
+            transform: translateY(-2px);
+        }
+
+        .emoji-picker {
+            position: absolute;
+            bottom: 70px;
+            right: 80px;
+            background: white;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 1000;
+            max-width: 280px;
+        }
+
+        .emoji-picker.active {
+            display: block;
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .emoji-item {
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 6px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .emoji-item:hover {
+            background: #f0f3f5;
+            transform: scale(1.2);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-preview {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f7f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .file-preview.show {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-preview-name {
+            flex: 1;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        .file-preview-remove {
+            background: #f5576c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .message-attachment {
+            margin-top: 10px;
+        }
+
+        .message-attachment img {
+            max-width: 300px;
+            max-height: 200px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .message-attachment video {
+            max-width: 400px;
+            max-height: 300px;
+            border-radius: 8px;
+        }
+
+        .message-attachment audio {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .file-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #f7f9fa;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #333;
+            font-size: 0.9em;
+            margin-top: 8px;
+        }
+
+        .file-download:hover {
+            background: #e1e8ed;
+        }
+
+        .error-message {
+            background: #ffe5e5;
+            color: #d32f2f;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .success-message {
+            background: #e5ffe5;
+            color: #2f7d32;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: #f7f9fa;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .admin-section {
+            display: none;
+            width: 450px;
+            flex-shrink: 0;
+            flex-direction: column;
+            height: calc(100vh - 120px);
+            position: relative;
+            margin-right: 0;
+            min-height: 0;
+            overflow: hidden;
+        }
+        
+        .resize-handle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            cursor: col-resize;
+            background: transparent;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+        
+        .resize-handle:hover,
+        .resize-handle.dragging {
+            background: #667eea;
+        }
+
+        .user-list,
+        #all-users-list {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            margin-bottom: 20px;
+            min-height: 0;
+        }
+        
+        .user-list::-webkit-scrollbar,
+        #all-users-list::-webkit-scrollbar,
+        .messages-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .user-list::-webkit-scrollbar-track,
+        #all-users-list::-webkit-scrollbar-track,
+        .messages-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .user-list::-webkit-scrollbar-thumb,
+        #all-users-list::-webkit-scrollbar-thumb,
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+        
+        .user-list::-webkit-scrollbar-thumb:hover,
+        #all-users-list::-webkit-scrollbar-thumb:hover,
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+
+        .user-item {
+            padding: 15px;
+            background: #f7f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+
+        .user-item:hover {
+            background: #e1e8ed;
+            transform: translateX(5px);
+        }
+
+        .user-item.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .user-item.deleted {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .user-item-info {
+            flex: 1;
+        }
+
+        .user-item-actions {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.85em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-delete {
+            background: #f5576c;
+            color: white;
+        }
+
+        .btn-restore {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-permanent {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .unread-badge {
+            background: #f5576c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+        
+        .password-toggle-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 0.85em;
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+        
+        .password-toggle-btn:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            background: #e1e8ed;
+            color: #333;
+        }
+
+        .settings-section {
+            display: none;
+            padding: 20px;
+            background: #f7f9fa;
+            border-radius: 10px;
+        }
+
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+        
+        #admin-conversations-tab,
+        #admin-users-tab {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            height: 100%;
+        }
+        
+        #admin-conversations-tab h3,
+        #admin-users-tab h3 {
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+        
+        #admin-conversations-tab > *:not(h3),
+        #admin-users-tab > *:not(h3) {
+            min-height: 0;
+        }
+
+        .admin-tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .admin-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .message.sent {
+            background: #DCF8C6;
+        }
+        
+        .message-wrapper {
+            position: relative;
+            display: block;
+            margin-bottom: 15px;
+            width: 100%;
+            overflow: visible;
+        }
+        
+        .message-wrapper.mine,
+        .message-wrapper.sent-by-me {
+            text-align: right;
+        }
+        
+        .message-wrapper.sent-by-other {
+            text-align: left;
+        }
+        
+        .message-actions {
+            display: none;
+            gap: 4px;
+            position: absolute;
+            right: auto;
+            left: 100%;
+            top: 0;
+            margin-left: 5px;
+            background: white;
+            padding: 3px 5px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        
+        .message-wrapper.mine .message-actions,
+        .message-wrapper.sent-by-me .message-actions {
+            left: auto;
+            right: 100%;
+            margin-left: 0;
+            margin-right: 5px;
+        }
+        
+        .message:hover .message-actions {
+            display: flex !important;
+        }
+        
+        .message-actions button {
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s;
+        }
+        
+        .message-actions button:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .reply-bar {
+            display: none;
+            background: #f0f0f0;
+            padding: 10px 15px;
+            border-left: 3px solid #667eea;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        
+        .reply-bar.show {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .reply-preview {
+            background: rgba(0, 0, 0, 0.05);
+            border-left: 4px solid #06cf9c;
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #667781;
+        }
+        
+        /* Voice Call Styles */
+        .call-button {
+            background: transparent;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .call-button:hover {
+            transform: scale(1.2);
+        }
+        
+        .call-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85em;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        
+        .status-online {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status-offline {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .status-in-call {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .dot-online { background: #4caf50; }
+        .dot-offline { background: #f44336; }
+        .dot-in-call { background: #2196f3; animation: pulse 1.5s infinite; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .call-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .call-modal.show {
+            display: flex;
+        }
+        
+        .call-modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            min-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .call-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+            animation: ringPulse 2s infinite;
+        }
+        
+        @keyframes ringPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .call-info h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1.5em;
+        }
+        
+        .call-status {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 20px;
+        }
+        
+        .call-timer {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: 600;
+            margin: 15px 0;
+        }
+        
+        .call-controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        .call-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5em;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .call-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .btn-answer {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-reject, .btn-hangup {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-mute {
+            background: #757575;
+            color: white;
+        }
+        
+        .btn-mute.active {
+            background: #ff9800;
+        }
+        
+        .missed-calls-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #f44336;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        
+        .missed-calls-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .missed-call-item {
+            padding: 12px;
+            background: #fff3e0;
+            border-left: 3px solid #ff9800;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .missed-call-item.seen {
+            background: #f5f5f5;
+            border-left-color: #bdbdbd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 ChatApp</h1>
+            <p id="header-subtitle" style="display: none;">Message with Ken Tse</p>
+        </div>
+
+        <div class="content">
+            <!-- Error/Success Messages -->
+            <div id="error-message" class="error-message"></div>
+            <div id="success-message" class="success-message"></div>
+
+            <!-- Login Section -->
+            <div id="auth-section" class="auth-section">
+                <h1 style="text-align: center; margin-bottom: 30px; color: #667eea;">💬 ChatApp Login</h1>
+                
+                <!-- Login Form -->
+                <form id="login-form" autocomplete="on" onsubmit="event.preventDefault(); login();">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="login-username" name="username" 
+                               placeholder="Enter username" autocomplete="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="login-password" name="password" 
+                                   placeholder="Enter password" autocomplete="current-password" style="padding-right: 60px;" required>
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('login-password', this)">
+                                Show
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn" type="submit">Login</button>
+                </form>
+            </div>
+
+            <!-- Chat Section -->
+            <div id="chat-section" class="chat-section" style="display: none;">
+                <div class="chat-header">
+                    <div>
+                        <h2 id="chat-title"></h2>
+                        <p id="user-info" style="color: #666; margin-top: 5px;"></p>
+                        <div id="admin-status-indicator" style="margin-top: 8px; display: none;"></div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button id="call-admin-btn" class="call-button" onclick="initiateCall()" style="display: none;">
+                            📞 Call
+                        </button>
+                        <div id="missed-calls-indicator" style="position: relative; display: none;">
+                            <button class="btn-logout" style="background: #ff9800;" onclick="showMissedCalls()">
+                                🔔 Missed Calls
+                            </button>
+                            <span id="missed-calls-count" class="missed-calls-badge" style="display: none;">0</span>
+                        </div>
+                        <button class="btn-logout" style="background: #667eea;" onclick="showSettings()">⚙️ Settings</button>
+                        <button class="btn-logout" onclick="logout()">Logout</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex: 1; overflow: hidden;">
+                    <!-- Admin Panel (only for Ken Tse) -->
+                    <div id="admin-panel" class="admin-section">
+                    <div class="resize-handle" id="resize-handle"></div>
+                    <div class="admin-tabs">
+                        <button class="admin-tab active" onclick="showAdminTab('conversations')">💬 Conversations</button>
+                        <button class="admin-tab" onclick="showAdminTab('users')">👥 <span id="users-tab-label">Users</span></button>
+                    </div>
+                    
+                    <div id="admin-conversations-tab">
+                        <h3 style="margin-bottom: 15px;">User Conversations</h3>
+                        <div id="user-list" class="user-list"></div>
+                    </div>
+                    
+                    <div id="admin-users-tab" style="display: none;">
+                        <h3 style="margin-bottom: 15px;">User Management</h3>
+                        <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="show-deleted-toggle" onchange="toggleShowDeleted()" 
+                                       style="width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-size: 0.95em;">Show Deleted Users</span>
+                            </label>
+                            <button class="btn" style="padding: 8px 16px; font-size: 0.9em; margin-left: auto; background: #dc3545;" 
+                                    onclick="bulkDeleteUsers()">
+                                🗑️ Remove All Deleted
+                            </button>
+                        </div>
+                        <div id="all-users-list" class="user-list"></div>
+                    </div>
+                    </div>
+
+                    <!-- Main Chat Area -->
+                    <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+                        <!-- Messages -->
+                        <div id="messages-container" class="messages-container">
+                            <div class="loading">Loading messages...</div>
+                        </div>
+
+                        <!-- Reply Bar -->
+                        <div id="reply-bar" class="reply-bar">
+                            <div>
+                                <div style="font-size: 0.85em; color: #667eea; font-weight: 600;">Replying to:</div>
+                                <div id="reply-preview" style="margin-top: 4px;"></div>
+                            </div>
+                            <button onclick="cancelReply()" style="background: none; border: none; cursor: pointer; font-size: 1.2em;">✖</button>
+                        </div>
+
+                        <!-- Message Input -->
+                        <div id="message-input-section" class="input-section">
+                            <textarea id="message-input" class="message-input" 
+                                   placeholder="Type your message..." 
+                                   rows="1"
+                                   oninput="autoResizeTextarea(this)"
+                                   onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"></textarea>
+                            <div class="input-actions">
+                                <button class="btn-attachment" onclick="document.getElementById('file-input').click()">📎</button>
+                                <button class="btn-attachment" onclick="toggleEmojiPicker()">😊</button>
+                                <button class="btn-send" onclick="sendMessage()">➤</button>
+                                <input type="file" id="file-input" style="display: none;" onchange="handleFileSelect(event)">
+                            </div>
+                            <!-- Emoji Picker -->
+                            <div id="emoji-picker" class="emoji-picker">
+                                <div id="emoji-grid" class="emoji-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <h3>⚙️ Settings</h3>
+            
+            <h4 style="margin-top: 20px; margin-bottom: 10px;">Change Password</h4>
+            <form onsubmit="event.preventDefault(); changePassword();">
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="current-password" name="current-pwd" 
+                               placeholder="Enter current password" 
+                               autocomplete="current-password" 
+                               data-form-type="other" style="padding-right: 60px;">
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('current-password', this)">
+                            Show
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="new-password" name="new-pwd" 
+                               placeholder="Enter new password (min 6 characters)" 
+                               autocomplete="new-password" 
+                               data-form-type="other" style="padding-right: 60px;">
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('new-password', this)">
+                            Show
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Confirm New Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="confirm-password" name="confirm-pwd" 
+                               placeholder="Confirm new password" 
+                               autocomplete="off" 
+                               data-form-type="other" style="padding-right: 60px;">
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('confirm-password', this)">
+                            Show
+                        </button>
+                    </div>
+                    <!-- Dedicated error/success message space -->
+                    <div id="settings-error-message" class="error-message" style="display: none; margin-top: 10px;"></div>
+                    <div id="settings-success-message" class="success-message" style="display: none; margin-top: 10px;"></div>
+                </div>
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button type="submit" class="btn">Change Password</button>
+                    <button type="button" class="btn btn-cancel" onclick="closeSettings()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="confirm-title">Confirm Action</h3>
+            <p id="confirm-message"></p>
+            <div class="modal-actions">
+                <button class="btn btn-delete" id="confirm-btn" onclick="confirmAction()">Confirm</button>
+                <button class="btn btn-cancel" onclick="closeConfirmModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Call Modals -->
+    
+    <!-- Incoming Call Modal -->
+    <div id="incoming-call-modal" class="call-modal">
+        <div class="call-modal-content">
+            <div class="call-avatar">
+                <span id="incoming-caller-icon">📞</span>
+            </div>
+            <div class="call-info">
+                <h3 id="incoming-caller-name">Incoming Call</h3>
+                <div class="call-status">Ringing...</div>
+            </div>
+            <div class="call-controls">
+                <button class="call-btn btn-answer" onclick="answerCall()" title="Answer">
+                    📞
+                </button>
+                <button class="call-btn btn-reject" onclick="rejectCall()" title="Reject">
+                    ✖
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Call Modal -->
+    <div id="active-call-modal" class="call-modal">
+        <div class="call-modal-content">
+            <div class="call-avatar" style="animation: none;">
+                <span id="active-call-icon">📞</span>
+            </div>
+            <div class="call-info">
+                <h3 id="active-call-name">In Call</h3>
+                <div class="call-status" id="active-call-status">Connected</div>
+                <div class="call-timer" id="call-timer">00:00</div>
+            </div>
+            <div class="call-controls">
+                <button class="call-btn btn-mute" id="mute-btn" onclick="toggleMute()" title="Mute">
+                    🔇
+                </button>
+                <button class="call-btn btn-hangup" onclick="hangupCall()" title="Hang Up">
+                    ☎️
+                </button>
+            </div>
+            <!-- Hidden audio element for remote stream -->
+            <audio id="remote-audio" autoplay></audio>
+        </div>
+    </div>
+
+    <script>
+        // Use the current host (works on both localhost and network IP)
+        const API_URL = `${window.location.protocol}//${window.location.host}/api`;
+        let token = null;  // Don't auto-load token - require explicit login
+        let currentUser = null;
+        let selectedUserId = null;
+        let messageInterval = null;
+        let adminMessageInterval = null;  // Separate interval for admin message view
+        let selectedFile = null;
+        let replyToId = null;  // Track message being replied to
+        
+        // Voice call variables
+        let heartbeatInterval = null;
+        let currentCallId = null;
+        let currentCallState = null;  // 'calling', 'ringing', 'connected', 'ended'
+        let peerConnection = null;
+        let localStream = null;
+        let remoteStream = null;
+        let callStartTime = null;
+        let callTimerInterval = null;
+        let signalPollInterval = null;
+        let adminId = null;  // Will be set on login
+
+        // Emoji list
+        const emojis = ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','👍','👎','👊','✊','🤛','🤜','🤞','✌️','🤟','🤘','👌','🤌','🤏','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🖖','👋','🤙','💪','🙏','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','🎉','🎊','🎈','🎁','🏆','🥇','🥈','🥉','⭐','🌟','✨','💫','🔥','💯','✅','❌','⚠️','📌','📍','🔔','🔕','📢','📣'];
+        
+        // Populate emoji picker
+        function initEmojiPicker() {
+            const grid = document.getElementById('emoji-grid');
+            if (grid) {
+                grid.innerHTML = emojis.map(emoji => 
+                    `<span class="emoji-item" onclick="insertEmoji('${emoji}')">${emoji}</span>`
+                ).join('');
+            }
+        }
+        
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emoji-picker');
+            if (picker) {
+                picker.classList.toggle('active');
+            }
+        }
+        
+        function insertEmoji(emoji) {
+            const input = document.getElementById('message-input');
+            if (input) {
+                input.value += emoji;
+                input.focus();
+            }
+            // Keep picker open for multiple emoji selection
+        }
+        
+        // Close emoji picker when clicking outside
+        document.addEventListener('click', function(event) {
+            const picker = document.getElementById('emoji-picker');
+            if (!picker) return;
+            
+            const emojiButton = event.target.closest('.btn-attachment');
+            
+            if (picker.classList.contains('active') && 
+                !picker.contains(event.target) && 
+                !emojiButton) {
+                picker.classList.remove('active');
+            }
+        });
+        
+        // Initialize emoji picker when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initEmojiPicker);
+        } else {
+            initEmojiPicker();
+        }
+
+        // Initialize
+        // DON'T auto-login - require explicit login each time
+        // Clear any existing token on page load to prevent auto-login
+        localStorage.removeItem('chatapp_token');
+        
+        // Clean up any old Remember Me data
+        localStorage.removeItem('chatapp_saved_username');
+        localStorage.removeItem('chatapp_saved_password');
+        localStorage.removeItem('chatapp_remember_me');
+        
+
+        function showError(message) {
+            // Check if settings modal is open
+            const settingsModal = document.getElementById('settings-modal');
+            if (settingsModal && settingsModal.classList.contains('show')) {
+                // Show only in settings modal - don't auto-hide
+                const settingsError = document.getElementById('settings-error-message');
+                const settingsSuccess = document.getElementById('settings-success-message');
+                settingsSuccess.style.display = 'none'; // Hide success if showing
+                settingsError.textContent = message;
+                settingsError.style.display = 'block';
+                // Don't auto-hide - stays until next action
+            } else {
+                // Show in main error area
+                const errorDiv = document.getElementById('error-message');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                setTimeout(() => errorDiv.style.display = 'none', 5000);
+            }
+        }
+
+        function showSuccess(message) {
+            // Check if settings modal is open
+            const settingsModal = document.getElementById('settings-modal');
+            if (settingsModal && settingsModal.classList.contains('show')) {
+                // Show only in settings modal
+                const settingsError = document.getElementById('settings-error-message');
+                const settingsSuccess = document.getElementById('settings-success-message');
+                settingsError.style.display = 'none'; // Hide error if showing
+                settingsSuccess.textContent = message;
+                settingsSuccess.style.display = 'block';
+                setTimeout(() => settingsSuccess.style.display = 'none', 3000);
+            } else {
+                // Show in main success area
+                const successDiv = document.getElementById('success-message');
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                setTimeout(() => successDiv.style.display = 'none', 3000);
+            }
+        }
+
+        async function login() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            if (!username || !password) {
+                showError('Please enter username and password');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    token = data.token;
+                    localStorage.setItem('chatapp_token', token);
+                    currentUser = data.user;
+                    
+                    // Get admin ID for voice calls from login response
+                    if (currentUser.role !== 'administrator' && data.admin_id) {
+                        adminId = data.admin_id;
+                        console.log('Admin ID set to:', adminId);
+                    }
+                    
+                    showChatSection();
+                    
+                    // Start heartbeat for status tracking
+                    startHeartbeat();
+                    
+                    // Load missed calls if admin
+                    if (currentUser.role === 'administrator') {
+                        loadMissedCalls();
+                        setInterval(loadMissedCalls, 30000); // Check every 30 seconds
+                    }
+                } else {
+                    showError(data.error || 'Login failed');
+                }
+            } catch (error) {
+                showError('Connection error. Make sure server is running on port 5001');
+            }
+        }
+
+        async function checkAuth() {
+            try {
+                const response = await fetch(`${API_URL}/auth/user`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    showChatSection();
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                logout();
+            }
+        }
+
+        async function updateUserWelcomeMessage() {
+            // For regular users, show: "Welcome <user>, <admin> is <status>" (but hide "Online")
+            const adminDisplayName = localStorage.getItem(`admin_name_for_user_${currentUser.id}`) || 'Ken';
+            const status = await getUserStatus(adminId);
+            
+            let statusText = '';
+            switch (status.status) {
+                case 'online':
+                    // Show "is" but no status word after it
+                    statusText = ' is';
+                    break;
+                case 'in_call':
+                    statusText = ' is Not Available';
+                    break;
+                default:
+                    statusText = ' is Offline';
+            }
+            
+            document.getElementById('user-info').textContent = `Welcome ${currentUser.username}, ${adminDisplayName}${statusText}`;
+        }
+
+        function showChatSection() {
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('chat-section').style.display = 'flex'; // Changed to flex
+
+            if (currentUser.role === 'administrator') {
+                document.getElementById('user-info').textContent = `Logged in as: ${currentUser.username}`;
+                document.getElementById('header-subtitle').textContent = 'Admin Dashboard';
+                document.getElementById('chat-title').textContent = '';
+                const adminPanel = document.getElementById('admin-panel');
+                adminPanel.style.display = 'flex'; // Changed to flex for proper layout
+                // Restore saved width for conversations tab
+                adminPanel.style.width = tabWidths.conversations;
+                document.getElementById('message-input-section').style.display = 'none'; // Hide until user selected
+                document.getElementById('messages-container').innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">Select a user to view conversation</p>';
+                
+                // Show missed calls indicator for admin
+                document.getElementById('missed-calls-indicator').style.display = 'block';
+                
+                loadUserList();
+                messageInterval = setInterval(loadUserList, 10000); // Auto-refresh user list
+                
+                // Poll for incoming call signals
+                signalPollInterval = setInterval(pollSignals, 2000); // Poll every 2 seconds
+            } else {
+                // Get custom admin name for this user
+                const adminDisplayName = localStorage.getItem(`admin_name_for_user_${currentUser.id}`) || 'Ken';
+                document.getElementById('header-subtitle').textContent = `Chat with ${adminDisplayName}`;
+                document.getElementById('admin-panel').style.display = 'none'; // Hide admin panel for regular users
+                document.getElementById('message-input-section').style.display = 'flex';
+                
+                // Show call button for regular users
+                const callBtn = document.getElementById('call-admin-btn');
+                if (callBtn) {
+                    callBtn.style.display = 'inline-block';
+                    callBtn.disabled = false; // Ensure button is enabled on login
+                }
+                
+                // Update welcome message with admin status
+                updateUserWelcomeMessage();
+                setInterval(updateUserWelcomeMessage, 15000); // Update every 15s
+                
+                // Update admin status indicator
+                if (adminId) {
+                    updateStatusIndicator(adminId);
+                    setInterval(() => updateStatusIndicator(adminId), 15000); // Update every 15s
+                }
+                
+                loadMessages();
+                messageInterval = setInterval(loadMessages, 5000); // Auto-refresh every 5s
+                
+                // Poll for incoming call signals
+                signalPollInterval = setInterval(pollSignals, 2000); // Poll every 2 seconds
+            }
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            // Parse timestamp (SQLite returns UTC, convert to local)
+            const date = new Date(timestamp + ' UTC');
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            
+            if (days === 0) {
+                return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            } else if (days === 1) {
+                return 'Yesterday';
+            } else if (days < 7) {
+                return `${days} days ago`;
+            } else {
+                return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            }
+        }
+
+        async function loadUserList() {
+            try {
+                const response = await fetch(`${API_URL}/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const users = await response.json();
+                const userListDiv = document.getElementById('user-list');
+                
+                if (users.length === 0) {
+                    userListDiv.innerHTML = '<div class="no-users">No users yet</div>';
+                    return;
+                }
+                
+                userListDiv.innerHTML = '';
+                users.forEach(user => {
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'user-item';
+                    userDiv.onclick = () => selectUser(user.id, user.username);
+                    
+                    // Show unread badge if there are messages
+                    const unreadBadge = user.unread_count > 0 ? 
+                        `<span class="unread-badge">${user.unread_count}</span>` : '';
+                    
+                    // Show last message time if exists, otherwise show "New user"
+                    const timeDisplay = user.last_message_time ? 
+                        formatTimestamp(user.last_message_time) : 
+                        '<span style="color: #999; font-size: 11px;">New user</span>';
+                    
+                    userDiv.innerHTML = `
+                        <div class="user-info">
+                            <div class="user-name">${user.username}</div>
+                            <div class="last-message-time">${timeDisplay}</div>
+                        </div>
+                        ${unreadBadge}
+                        <button class="call-button" onclick="event.stopPropagation(); callUser(${user.id}, '${user.username.replace(/'/g, "\\'")}')">📞</button>
+                    `;
+                    userListDiv.appendChild(userDiv);
+                });
+            } catch (error) {
+                showError('Failed to load conversations');
+            }
+        }
+
+        async function selectUser(userId, username) {
+            selectedUserId = userId;
+            document.getElementById('chat-title').textContent = '';
+            document.getElementById('message-input-section').style.display = 'flex'; // Show input when user selected
+            
+            // Clear any existing admin message interval
+            if (adminMessageInterval) {
+                console.log('[Admin] Clearing previous message refresh interval');
+                clearInterval(adminMessageInterval);
+            }
+            
+            // Load messages immediately
+            await loadUserMessages(userId);
+            
+            // Mark messages as read by admin
+            try {
+                await fetch(`${API_URL}/admin/users/${userId}/mark-read`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                console.log(`[Admin] Marked user ${userId} messages as read`);
+            } catch (error) {
+                console.error('Failed to mark messages as read:', error);
+            }
+            
+            // Refresh user list IMMEDIATELY to update unread count badge
+            await loadUserList();
+            
+            // Set up auto-refresh for this user's messages every 5 seconds
+            console.log(`[Admin] Setting up auto-refresh for user ${userId} messages (every 5 seconds)`);
+            adminMessageInterval = setInterval(() => {
+                if (selectedUserId === userId) {  // Only refresh if still viewing same user
+                    console.log(`[Admin] Auto-refreshing messages for user ${userId}`);
+                    loadUserMessages(userId);
+                }
+            }, 5000);
+        }
+
+        async function loadUserMessages(userId) {
+            try {
+                console.log(`[Admin] Loading messages for user ${userId}`);
+                const response = await fetch(`${API_URL}/admin/users/${userId}/messages`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const messages = await response.json();
+                console.log(`[Admin] Loaded ${messages.length} messages for user ${userId}`);
+                displayMessages(messages);
+            } catch (error) {
+                console.error('Failed to load messages:', error);
+                showError('Failed to load messages');
+            }
+        }
+
+        async function loadMessages() {
+            try {
+                console.log('[Auto-Refresh] Checking for new messages...');
+                const response = await fetch(`${API_URL}/messages`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const messages = await response.json();
+                console.log(`[Auto-Refresh] Loaded ${messages.length} messages`);
+                displayMessages(messages);
+            } catch (error) {
+                console.error('Failed to load messages:', error);
+            }
+        }
+
+        function displayMessages(messages) {
+            const container = document.getElementById('messages-container');
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666;">No messages yet. Start the conversation!</p>';
+                return;
+            }
+
+            let lastDate = null;
+            let html = '';
+            
+            messages.forEach((msg, index) => {
+                const msgDate = new Date(msg.timestamp);
+                const dateStr = msgDate.toLocaleDateString();
+                const timeStr = msgDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+                
+                // Check if date changed
+                if (dateStr !== lastDate) {
+                    const options = { weekday: 'short', day: 'numeric', month: 'short' };
+                    const formattedDate = msgDate.toLocaleDateString('en-US', options);
+                    html += `<div style="text-align: center; margin: 20px 0;"><div class="date-separator">${formattedDate}</div></div>`;
+                    lastDate = dateStr;
+                }
+                
+                // Determine if this message is from current viewer
+                let isMine = false;
+                let senderName = '';
+                
+                if (currentUser.role === 'administrator') {
+                    // Admin viewing: admin messages are "mine", user messages are "other"
+                    isMine = msg.sender_type === 'admin';
+                    senderName = isMine ? '' : (msg.username || ''); // Don't show 'You' or 'User'
+                } else {
+                    // Regular user viewing: user messages are "mine", admin messages are "other"
+                    isMine = msg.sender_type === 'user';
+                    senderName = ''; // Don't show any sender name for users
+                }
+                
+                const messageClass = isMine ? 'sent-by-me' : 'sent-by-other';
+                const attachmentHtml = msg.file_url ? renderAttachment(msg.file_url, msg.file_name, msg.file_size) : '';
+                
+                // Reply preview if message has reply_to
+                let replyHtml = '';
+                if (msg.reply_to) {
+                    const replyToMsg = messages.find(m => m.id === msg.reply_to);
+                    if (replyToMsg) {
+                        const replyText = replyToMsg.message || 'Attachment';
+                        replyHtml = `<div class="reply-preview">↩ ${replyText.substring(0, 50)}${replyText.length > 50 ? '...' : ''}</div>`;
+                    }
+                }
+                
+                // No tick mark - background color indicates read status
+                let tickMark = '';
+                
+                // Add unread class for sent messages that haven't been read
+                const unreadClass = (isMine && !msg.is_read) ? 'unread' : '';
+                
+                html += `
+                    <div class="message-wrapper ${messageClass}">
+                        <div class="message ${messageClass} ${unreadClass}">
+                            ${senderName ? `<div class="message-sender">${senderName}</div>` : ''}
+                            ${replyHtml}
+                            <div>
+                                ${msg.message || '<em>Sent an attachment</em>'}
+                                <span class="message-time">${timeStr}${tickMark}</span>
+                            </div>
+                            ${attachmentHtml}
+                            <div class="message-actions">
+                                <button onclick="replyToMessage(${msg.id}, '${(msg.message || 'Attachment').replace(/'/g, "\\'")}')">↩</button>
+                                ${isMine ? `<button onclick="deleteMessage(${msg.id})">🗑</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+
+            container.scrollTop = container.scrollHeight;
+            
+            // Mark messages as read if user view
+            if (currentUser && currentUser.role !== 'administrator') {
+                markMessagesAsRead();
+            }
+        }
+
+        function renderAttachment(fileUrl, fileName, fileSize) {
+            if (!fileUrl) return '';
+            
+            const extension = fileName ? fileName.split('.').pop().toLowerCase() : '';
+            const sizeText = fileSize ? formatFileSize(fileSize) : '';
+            
+            // Image files
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension)) {
+                return `
+                    <div class="message-attachment">
+                        <img src="${fileUrl}" alt="${fileName}" onclick="window.open('${fileUrl}', '_blank')">
+                        <div style="font-size: 0.85em; margin-top: 5px; opacity: 0.8; display: flex; justify-content: space-between; align-items: center;">
+                            <span>${fileName} (${sizeText})</span>
+                            <a href="${fileUrl}?original_name=${encodeURIComponent(fileName)}" download="${fileName}" style="margin-left: 10px; text-decoration: none;">📥</a>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Video files
+            if (['mp4', 'webm', 'mov', 'avi'].includes(extension)) {
+                return `
+                    <div class="message-attachment">
+                        <video controls>
+                            <source src="${fileUrl}" type="video/${extension === 'mov' ? 'quicktime' : extension}">
+                            Your browser doesn't support video playback.
+                        </video>
+                        <div style="font-size: 0.85em; margin-top: 5px; opacity: 0.8; display: flex; justify-content: space-between; align-items: center;">
+                            <span>${fileName} (${sizeText})</span>
+                            <a href="${fileUrl}?original_name=${encodeURIComponent(fileName)}" download="${fileName}" style="margin-left: 10px; text-decoration: none;">📥</a>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Audio files
+            if (['mp3', 'wav', 'ogg', 'm4a'].includes(extension)) {
+                return `
+                    <div class="message-attachment">
+                        <audio controls>
+                            <source src="${fileUrl}" type="audio/${extension}">
+                            Your browser doesn't support audio playback.
+                        </audio>
+                        <div style="font-size: 0.85em; margin-top: 5px; opacity: 0.8;">
+                            ${fileName} (${sizeText})
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Document/Other files - make all files downloadable
+            const fileIcon = getFileIcon(extension);
+            return `
+                <div class="message-attachment">
+                    <a href="${fileUrl}?original_name=${encodeURIComponent(fileName)}" class="file-download" download="${fileName}" target="_blank">
+                        <span style="font-size: 1.5em;">${fileIcon}</span>
+                        <div>
+                            <div style="font-weight: 600;">📥 ${fileName}</div>
+                            <div style="font-size: 0.85em; opacity: 0.7;">${sizeText} • Click to download</div>
+                        </div>
+                    </a>
+                </div>
+            `;
+        }
+
+        function getFileIcon(extension) {
+            const icons = {
+                'pdf': '📄',
+                'doc': '📝',
+                'docx': '📝',
+                'txt': '📝',
+                'zip': '🗜️',
+                'rar': '🗜️',
+                'xls': '📊',
+                'xlsx': '📊'
+            };
+            return icons[extension] || '📎';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Check file size (50MB limit)
+            if (file.size > 50 * 1024 * 1024) {
+                showError('File size must be less than 50MB');
+                event.target.value = '';
+                return;
+            }
+            
+            selectedFile = file;
+            document.getElementById('file-preview-name').textContent = `📎 ${file.name} (${formatFileSize(file.size)})`;
+            document.getElementById('file-preview').classList.add('show');
+        }
+
+        function removeFile() {
+            selectedFile = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-preview').classList.remove('show');
+        }
+
+        async function uploadFile() {
+            if (!selectedFile) return null;
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            
+            try {
+                const response = await fetch(`${API_URL}/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data;
+                } else {
+                    showError('Failed to upload file');
+                    return null;
+                }
+            } catch (error) {
+                showError('Failed to upload file');
+                return null;
+            }
+        }
+
+        async function markMessagesAsRead() {
+            if (!currentUser || currentUser.role === 'administrator') return;
+            
+            try {
+                await fetch(`${API_URL}/messages/mark-read`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch (error) {
+                // Silently fail, not critical
+                console.error('Failed to mark messages as read:', error);
+            }
+        }
+
+        // Auto-resize textarea with max 5 lines
+        function autoResizeTextarea(textarea) {
+            // Reset height to get accurate scrollHeight
+            textarea.style.height = 'auto';
+            
+            // Calculate height based on content
+            const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+            const maxLines = 5;
+            const maxHeight = lineHeight * maxLines;
+            
+            if (textarea.scrollHeight <= maxHeight) {
+                textarea.style.height = textarea.scrollHeight + 'px';
+                textarea.style.overflowY = 'hidden';
+            } else {
+                textarea.style.height = maxHeight + 'px';
+                textarea.style.overflowY = 'auto';
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+
+            if (!message && !selectedFile) {
+                showError('Please enter a message or attach a file');
+                return;
+            }
+
+            try {
+                // Upload file first if selected
+                let fileData = null;
+                if (selectedFile) {
+                    fileData = await uploadFile();
+                    if (!fileData) return; // Upload failed
+                }
+
+                const body = { 
+                    message: message || ''
+                };
+                
+                if (fileData) {
+                    body.file_url = fileData.file_url;
+                    body.file_name = fileData.original_filename;
+                    body.file_size = fileData.file_size;
+                }
+                
+                if (replyToId) {
+                    body.reply_to = replyToId;
+                }
+                
+                if (currentUser.role === 'administrator' && selectedUserId) {
+                    body.user_id = selectedUserId;
+                }
+
+                const response = await fetch(`${API_URL}/messages/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (response.ok) {
+                    input.value = '';
+                    input.style.height = 'auto'; // Reset textarea height
+                    removeFile();
+                    cancelReply();
+                    if (currentUser.role === 'administrator' && selectedUserId) {
+                        await loadUserMessages(selectedUserId);
+                        await loadUserList(); // Refresh unread counts IMMEDIATELY
+                    } else {
+                        loadMessages();
+                    }
+                } else {
+                    showError('Failed to send message');
+                }
+            } catch (error) {
+                showError('Failed to send message');
+            }
+        }
+
+        function replyToMessage(messageId, messageText) {
+            replyToId = messageId;
+            const replyBar = document.getElementById('reply-bar');
+            const replyPreview = document.getElementById('reply-preview');
+            replyBar.classList.add('show');
+            replyPreview.textContent = messageText.substring(0, 100) + (messageText.length > 100 ? '...' : '');
+            document.getElementById('message-input').focus();
+        }
+
+        function cancelReply() {
+            replyToId = null;
+            const replyBar = document.getElementById('reply-bar');
+            replyBar.classList.remove('show');
+        }
+
+        async function deleteMessage(messageId) {
+            if (!confirm('Delete this message?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/messages/${messageId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    showSuccess('Message deleted');
+                    // Refresh messages
+                    if (currentUser.role === 'administrator' && selectedUserId) {
+                        await loadUserMessages(selectedUserId);
+                    } else {
+                        loadMessages();
+                    }
+                } else {
+                    showError('Failed to delete message');
+                }
+            } catch (error) {
+                showError('Failed to delete message');
+            }
+        }
+
+        function logout() {
+            console.log('[Logout] Starting logout process...');
+            
+            // Clear token from localStorage FIRST
+            localStorage.removeItem('chatapp_token');
+            
+            // Clear global token variable
+            token = null;
+            currentUser = null;
+            selectedUserId = null;
+            
+            // Clear all intervals
+            if (messageInterval) {
+                clearInterval(messageInterval);
+                messageInterval = null;
+            }
+            if (adminMessageInterval) {
+                clearInterval(adminMessageInterval);
+                adminMessageInterval = null;
+            }
+            if (signalPollInterval) {
+                clearInterval(signalPollInterval);
+                signalPollInterval = null;
+            }
+            
+            // Stop heartbeat and cleanup calls
+            stopHeartbeat();
+            if (currentCallId) {
+                hangupCall('Logged out');
+            }
+            
+            console.log('[Logout] Token cleared:', localStorage.getItem('chatapp_token'));
+            console.log('[Logout] All intervals cleared');
+            
+            // Show login screen
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('chat-section').style.display = 'none';
+            showLogin();
+            
+            // Clear any stored credentials (in case they exist)
+            localStorage.removeItem('chatapp_saved_username');
+            localStorage.removeItem('chatapp_saved_password');
+            localStorage.removeItem('chatapp_remember_me');
+        }
+
+        // ========== Settings & Password Change ==========
+
+        function showSettings() {
+            document.getElementById('settings-modal').classList.add('show');
+            // Populate hidden username field for accessibility
+            if (currentUser) {
+                document.getElementById('change-password-username').value = currentUser.username;
+            }
+        }
+
+        function saveAdminNameForUser(userId, name) {
+            const trimmedName = name.trim() || 'Ken';
+            localStorage.setItem(`admin_name_for_user_${userId}`, trimmedName);
+            showSuccess(`Admin name for this user saved as: ${trimmedName}`);
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('show');
+            // Hide any error/success messages
+            document.getElementById('settings-error-message').style.display = 'none';
+            document.getElementById('settings-success-message').style.display = 'none';
+            // Reset form
+            const form = document.getElementById('change-password-form');
+            if (form) form.reset();
+            document.getElementById('current-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+        }
+
+        function togglePasswordVisibility(inputId, button) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = 'Hide';
+            } else {
+                input.type = 'password';
+                button.textContent = 'Show';
+            }
+        }
+
+        async function changePassword() {
+            console.log('🔐 [Password Change] Function called');
+            
+            // Hide any previous messages
+            document.getElementById('settings-error-message').style.display = 'none';
+            document.getElementById('settings-success-message').style.display = 'none';
+            
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            console.log('🔐 [Password Change] Form values retrieved:', {
+                currentPasswordLength: currentPassword.length,
+                newPasswordLength: newPassword.length,
+                confirmPasswordLength: confirmPassword.length
+            });
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                console.log('❌ [Password Change] Validation failed: Empty fields');
+                showError('Please fill all password fields');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                console.log('❌ [Password Change] Validation failed: Passwords do not match');
+                showError('New passwords do not match');
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+                document.getElementById('new-password').focus();
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                console.log('❌ [Password Change] Validation failed: Password too short');
+                showError('New password must be at least 6 characters (current: ' + newPassword.length + ' characters)');
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+                document.getElementById('new-password').focus();
+                return;
+            }
+
+            console.log('✅ [Password Change] Validation passed, sending request to server');
+
+            try {
+                const requestBody = {
+                    currentPassword: currentPassword,
+                    newPassword: newPassword
+                };
+                
+                console.log('🔐 [Password Change] Request details:', {
+                    url: `${API_URL}/auth/change-password`,
+                    method: 'POST',
+                    hasToken: !!token,
+                    tokenLength: token ? token.length : 0
+                });
+
+                const response = await fetch(`${API_URL}/auth/change-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('🔐 [Password Change] Response received:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok
+                });
+
+                const data = await response.json();
+                console.log('🔐 [Password Change] Response data:', data);
+
+                if (response.ok) {
+                    console.log('✅ [Password Change] SUCCESS!');
+                    showSuccess('Password changed successfully!');
+                    // Clear all password fields
+                    document.getElementById('current-password').value = '';
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-password').value = '';
+                    closeSettings();
+                } else {
+                    console.log('❌ [Password Change] Server returned error:', data.error);
+                    showError(data.error || 'Failed to change password');
+                    // Clear current password if it's wrong
+                    if (data.error && data.error.includes('current password')) {
+                        document.getElementById('current-password').value = '';
+                        document.getElementById('current-password').focus();
+                    }
+                }
+            } catch (error) {
+                console.error('❌ [Password Change] Exception caught:', error);
+                showError('Failed to change password: ' + error.message);
+            }
+        }
+
+        // ========== Admin Tab Switching with Width Memory ==========
+
+        // Store width preferences for each tab
+        let tabWidths = {
+            conversations: localStorage.getItem('admin_width_conversations') || '450px',
+            users: localStorage.getItem('admin_width_users') || '450px'
+        };
+        let currentAdminTab = 'conversations';
+
+        function showAdminTab(tab) {
+            // Save current tab width before switching
+            const adminPanel = document.getElementById('admin-panel');
+            if (adminPanel.style.width) {
+                tabWidths[currentAdminTab] = adminPanel.style.width;
+                localStorage.setItem(`admin_width_${currentAdminTab}`, tabWidths[currentAdminTab]);
+            }
+            
+            // Update current tab
+            currentAdminTab = tab;
+            
+            // Update tab buttons
+            document.querySelectorAll('.admin-tab').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Restore width for new tab
+            adminPanel.style.width = tabWidths[tab];
+            
+            // Show/hide tab content
+            if (tab === 'conversations') {
+                document.getElementById('admin-conversations-tab').style.display = 'block';
+                document.getElementById('admin-users-tab').style.display = 'none';
+                // Show messages container and input section
+                document.getElementById('messages-container').style.display = 'block';
+                document.getElementById('reply-bar').style.display = 'none';
+                // Refresh conversation list
+                loadUserList();
+                // If a user was selected, reload their messages
+                if (selectedUserId) {
+                    loadUserMessages(selectedUserId);
+                    document.getElementById('message-input-section').style.display = 'flex';
+                } else {
+                    document.getElementById('message-input-section').style.display = 'none';
+                }
+            } else {
+                document.getElementById('admin-conversations-tab').style.display = 'none';
+                document.getElementById('admin-users-tab').style.display = 'block';
+                // Hide messages container and input section in Users tab
+                document.getElementById('messages-container').style.display = 'none';
+                document.getElementById('message-input-section').style.display = 'none';
+                
+                loadAllUsers();
+            }
+        }
+
+        // ========== Resizable Admin Panel ==========
+
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const resizeHandle = document.getElementById('resize-handle');
+            const adminPanel = document.getElementById('admin-panel');
+            
+            if (resizeHandle && adminPanel) {
+                resizeHandle.addEventListener('mousedown', (e) => {
+                    isResizing = true;
+                    startX = e.clientX;
+                    startWidth = adminPanel.offsetWidth;
+                    resizeHandle.classList.add('dragging');
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none';
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!isResizing) return;
+                    
+                    const deltaX = e.clientX - startX;
+                    const newWidth = startWidth + deltaX;
+                    
+                    if (newWidth >= 300 && newWidth <= 800) {
+                        adminPanel.style.width = newWidth + 'px';
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    if (isResizing) {
+                        isResizing = false;
+                        resizeHandle.classList.remove('dragging');
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                        
+                        // Save the new width for current tab
+                        tabWidths[currentAdminTab] = adminPanel.style.width;
+                        localStorage.setItem(`admin_width_${currentAdminTab}`, tabWidths[currentAdminTab]);
+                    }
+                });
+            }
+        });
+
+        // ========== Admin User Management ==========
+
+        async function loadAllUsers(includeDeleted) {
+            try {
+                const response = await fetch(`${API_URL}/admin/users?include_deleted=${includeDeleted}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const users = await response.json();
+                const usersList = document.getElementById('all-users-list');
+                
+                // Update tab label with count
+                const activeUsers = users.filter(u => !u.is_deleted);
+                document.getElementById('users-tab-label').textContent = `${activeUsers.length} Users`;
+                
+                if (users.length === 0) {
+                    usersList.innerHTML = '<p style="text-align: center; color: #666;">No users found</p>';
+                    return;
+                }
+
+                usersList.innerHTML = users.map(user => {
+                    const isDeleted = user.is_deleted;
+                    const isSelf = user.id === currentUser.id;
+                    const savedName = localStorage.getItem(`admin_name_for_user_${user.id}`) || 'Ken';
+                    
+                    return `
+                        <div class="user-item ${isDeleted ? 'deleted' : ''}" style="cursor: default;">
+                            <div class="user-item-info" style="flex: 1;">
+                                <strong>${user.username}</strong> ${isSelf ? '(You)' : ''}
+                                <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+                                    ${user.email}
+                                </div>
+                                ${!isSelf && !isDeleted ? `
+                                    <div style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+                                        <label style="font-size: 0.85em; color: #667eea; font-weight: 600;">Admin Name for ${user.username}:</label>
+                                        <input type="text" id="admin-name-${user.id}" value="${savedName}" 
+                                               placeholder="Ken" 
+                                               style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9em; width: 120px;"
+                                               onchange="saveAdminNameForUser(${user.id}, this.value)">
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${!isSelf ? `
+                                <div class="user-item-actions" onclick="event.stopPropagation()">
+                                    ${!isDeleted ? `
+                                        <button class="btn-small btn-delete" onclick="deleteUser(${user.id}, '${user.username}')">
+                                            Delete
+                                        </button>
+                                    ` : `
+                                        <button class="btn-small btn-restore" onclick="restoreUser(${user.id}, '${user.username}')">
+                                            Restore
+                                        </button>
+                                        <button class="btn-small btn-permanent" onclick="permanentDeleteUser(${user.id}, '${user.username}')">
+                                            Delete Forever
+                                        </button>
+                                    `}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                showError('Failed to load users');
+            }
+        }
+
+        function toggleShowDeleted() {
+            const checkbox = document.getElementById('show-deleted-toggle');
+            loadAllUsers(checkbox.checked);
+        }
+
+        async function bulkDeleteUsers() {
+            showConfirmModal(
+                'Remove All Deleted Users',
+                'This will PERMANENTLY delete all soft-deleted users and their associated data (conversations, messages, etc.). This action CANNOT be undone!',
+                async () => {
+                    try {
+                        const response = await fetch(`${API_URL}/admin/users/bulk-delete-deleted`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            showSuccess(`Removed ${result.deleted_count || 0} deleted users permanently`);
+                            // Refresh user list
+                            const checkbox = document.getElementById('show-deleted-toggle');
+                            loadAllUsers(checkbox.checked);
+                        } else {
+                            showError(result.error || 'Failed to bulk delete users');
+                        }
+                    } catch (error) {
+                        showError('Failed to bulk delete users');
+                    }
+                }
+            );
+        }
+
+        let confirmCallback = null;
+
+        function showConfirmModal(title, message, callback) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            confirmCallback = callback;
+            document.getElementById('confirm-modal').classList.add('show');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.remove('show');
+            confirmCallback = null;
+        }
+
+        function confirmAction() {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeConfirmModal();
+        }
+
+        async function deleteUser(userId, username) {
+            showConfirmModal(
+                'Delete User',
+                `Are you sure you want to delete ${username}? This can be undone later.`,
+                async () => {
+                    try {
+                        const response = await fetch(`${API_URL}/admin/users/${userId}/delete`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+
+                        if (response.ok) {
+                            showSuccess(`User ${username} deleted successfully`);
+                            loadAllUsers(true); // Reload with deleted users
+                        } else {
+                            const data = await response.json();
+                            showError(data.error || 'Failed to delete user');
+                        }
+                    } catch (error) {
+                        showError('Failed to delete user');
+                    }
+                }
+            );
+        }
+
+        async function restoreUser(userId, username) {
+            try {
+                const response = await fetch(`${API_URL}/admin/users/${userId}/restore`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    showSuccess(`User ${username} restored successfully`);
+                    loadAllUsers(true); // Reload
+                } else {
+                    const data = await response.json();
+                    showError(data.error || 'Failed to restore user');
+                }
+            } catch (error) {
+                showError('Failed to restore user');
+            }
+        }
+
+        async function permanentDeleteUser(userId, username) {
+            showConfirmModal(
+                '⚠️ Permanent Delete',
+                `Are you sure you want to PERMANENTLY delete ${username}? This CANNOT be undone! All their messages will be deleted.`,
+                async () => {
+                    try {
+                        const response = await fetch(`${API_URL}/admin/users/${userId}/permanent-delete`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+
+                        if (response.ok) {
+                            showSuccess(`User ${username} permanently deleted`);
+                            loadAllUsers(true); // Reload
+                        } else {
+                            const data = await response.json();
+                            showError(data.error || 'Failed to delete user');
+                        }
+                    } catch (error) {
+                        showError('Failed to delete user');
+                    }
+                }
+            );
+        }
+
+        // ============= VOICE CALL FUNCTIONS =============
+        // Embedded inline to avoid 404 errors
+        
+        // ========== Heartbeat & Status Management ==========
+        
+        function startHeartbeat() {
+            console.log('📡 Starting heartbeat...');
+            sendHeartbeat();
+            heartbeatInterval = setInterval(sendHeartbeat, 10000);
+            updateMyStatus('online');
+        }
+
+        async function sendHeartbeat() {
+            try {
+                await fetch(`${API_URL}/status/heartbeat`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch (error) {
+                console.error('Heartbeat failed:', error);
+            }
+        }
+
+        async function updateMyStatus(status, currentCallWith = null) {
+            try {
+                await fetch(`${API_URL}/status/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        status: status,
+                        current_call_with: currentCallWith
+                    })
+                });
+                console.log(`📊 Status updated to: ${status}`);
+            } catch (error) {
+                console.error('Status update failed:', error);
+            }
+        }
+
+        async function getUserStatus(userId) {
+            try {
+                const response = await fetch(`${API_URL}/status/user/${userId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Failed to get user status:', error);
+                return { status: 'offline' };
+            }
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+            updateMyStatus('offline');
+        }
+
+        async function updateStatusIndicator(userId) {
+            const status = await getUserStatus(userId);
+            const indicator = document.getElementById('admin-status-indicator');
+            
+            if (!indicator) return;
+            
+            let statusClass, statusText, dotClass;
+            
+            switch (status.status) {
+                case 'online':
+                    statusClass = 'status-online';
+                    statusText = 'Online';
+                    dotClass = 'dot-online';
+                    break;
+                case 'in_call':
+                    statusClass = 'status-in-call';
+                    statusText = 'Not Available';
+                    dotClass = 'dot-in-call';
+                    break;
+                default:
+                    statusClass = 'status-offline';
+                    statusText = 'Offline';
+                    dotClass = 'dot-offline';
+            }
+            
+            indicator.innerHTML = `
+                <span class="status-indicator ${statusClass}">
+                    <span class="status-dot ${dotClass}"></span>
+                    ${statusText}
+                </span>
+            `;
+            indicator.style.display = 'block';
+        }
+
+        // ========== Call Initiation ==========
+        
+        // For admin to call users
+        async function callUser(userId, username) {
+            console.log(`📞 Admin calling user ${username} (ID: ${userId})...`);
+            
+            try {
+                // Check if WebRTC is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    showError('Voice calls are not supported in this browser');
+                    return;
+                }
+                
+                // Request microphone permission
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    console.log('🎤 Microphone access granted');
+                } catch (error) {
+                    showError('Microphone permission denied. Please enable microphone access.');
+                    console.error('Microphone error:', error);
+                    return;
+                }
+                
+                // Initiate call via API
+                const response = await fetch(`${API_URL}/call/initiate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ callee_id: userId })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    // User is offline
+                    if (localStream) {
+                        localStream.getTracks().forEach(track => track.stop());
+                        localStream = null;
+                    }
+                    
+                    if (data.reason === 'offline') {
+                        showError(`${username} is offline.`);
+                    } else {
+                        showError(`Unable to call ${username}.`);
+                    }
+                    
+                    return;
+                }
+                
+                // Call initiated successfully
+                currentCallId = data.call_id;
+                currentCallState = 'calling';
+                
+                // Show calling UI
+                document.getElementById('active-call-name').textContent = username;
+                document.getElementById('active-call-status').textContent = 'Calling...';
+                document.getElementById('call-timer').textContent = '00:00';
+                document.getElementById('active-call-modal').classList.add('show');
+                
+                // Set up WebRTC with user (not admin)
+                await setupPeerConnectionForUser(userId);
+                
+                // Create and send offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                // Send offer via signaling
+                await sendSignal(userId, {
+                    type: 'offer',
+                    sdp: offer.sdp,
+                    call_id: currentCallId
+                });
+                
+                // Start polling for signals
+                startSignalPolling();
+                
+                // Set timeout
+                setTimeout(() => {
+                    if (currentCallState === 'calling') {
+                        hangupCall('No answer');
+                    }
+                }, 30000);
+                
+            } catch (error) {
+                console.error('Call initiation failed:', error);
+                showError('Failed to initiate call');
+                
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                }
+            }
+        }
+        
+        async function initiateCall() {
+            console.log('📞 Initiating call to admin...');
+            
+            const callBtn = document.getElementById('call-admin-btn');
+            if (callBtn) callBtn.disabled = true;
+            
+            try {
+                // Check if WebRTC is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    showError('Voice calls are not supported in this browser');
+                    return;
+                }
+                
+                // Get admin ID
+                if (!adminId) {
+                    showError('Admin ID not found');
+                    return;
+                }
+                
+                // Request microphone permission
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    console.log('🎤 Microphone access granted');
+                } catch (error) {
+                    showError('Microphone permission denied. Please enable microphone access.');
+                    console.error('Microphone error:', error);
+                    if (callBtn) callBtn.disabled = false;
+                    return;
+                }
+                
+                // Initiate call via API
+                const response = await fetch(`${API_URL}/call/initiate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ callee_id: adminId })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    // Admin is busy or offline
+                    if (localStream) {
+                        localStream.getTracks().forEach(track => track.stop());
+                        localStream = null;
+                    }
+                    
+                    if (data.reason === 'busy') {
+                        showError('Admin is currently unavailable. Your call has been recorded.');
+                    } else if (data.reason === 'offline') {
+                        showError('Admin is offline. Your call has been recorded.');
+                    }
+                    
+                    if (callBtn) callBtn.disabled = false;
+                    return;
+                }
+                
+                // Call initiated successfully
+                currentCallId = data.call_id;
+                currentCallState = 'calling';
+                
+                // Show calling UI
+                showCallingUI();
+                
+                // Set up WebRTC
+                await setupPeerConnection();
+                
+                // Create and send offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                // Send offer via signaling
+                await sendSignal(adminId, {
+                    type: 'offer',
+                    sdp: offer.sdp,
+                    call_id: currentCallId
+                });
+                
+                // Start polling for signals
+                startSignalPolling();
+                
+                // Set timeout
+                setTimeout(() => {
+                    if (currentCallState === 'calling') {
+                        hangupCall('No answer');
+                    }
+                }, 30000);
+                
+            } catch (error) {
+                console.error('Call initiation failed:', error);
+                showError('Failed to initiate call');
+                if (callBtn) callBtn.disabled = false;
+                
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                }
+            }
+        }
+
+        // ========== WebRTC Setup ==========
+        
+        // For admin calling users
+        async function setupPeerConnectionForUser(userId) {
+            const configuration = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            };
+            
+            peerConnection = new RTCPeerConnection(configuration);
+            
+            // Add local stream tracks
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+            
+            // Handle remote stream
+            peerConnection.ontrack = (event) => {
+                console.log('📥 Received remote track');
+                remoteStream = event.streams[0];
+                const remoteAudio = document.getElementById('remote-audio');
+                if (remoteAudio) {
+                    remoteAudio.srcObject = remoteStream;
+                }
+            };
+            
+            // Handle ICE candidates
+            peerConnection.onicecandidate = async (event) => {
+                if (event.candidate) {
+                    console.log('🧊 New ICE candidate');
+                    await sendSignal(userId, {
+                        type: 'ice',
+                        candidate: event.candidate.toJSON(),
+                        call_id: currentCallId
+                    });
+                }
+            };
+            
+            // Handle connection state changes
+            peerConnection.onconnectionstatechange = () => {
+                console.log('Connection state:', peerConnection.connectionState);
+                
+                if (peerConnection.connectionState === 'connected') {
+                    console.log('✅ Call connected');
+                    currentCallState = 'connected';
+                    
+                    // Update UI to show connected
+                    const statusEl = document.getElementById('active-call-status');
+                    if (statusEl) statusEl.textContent = 'Connected';
+                    
+                    // Ensure modal is visible (admin calling user)
+                    const activeModal = document.getElementById('active-call-modal');
+                    if (activeModal && !activeModal.classList.contains('show')) {
+                        activeModal.classList.add('show');
+                    }
+                    
+                    if (!callTimerInterval) startCallTimer();
+                } else if (peerConnection.connectionState === 'disconnected' || 
+                           peerConnection.connectionState === 'failed') {
+                    console.log('❌ Call disconnected');
+                    hangupCall('Connection lost');
+                }
+            };
+        }
+        
+        // For users calling admin
+        async function setupPeerConnection() {
+            const configuration = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            };
+            
+            peerConnection = new RTCPeerConnection(configuration);
+            
+            // Add local stream tracks
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+            
+            // Handle remote stream
+            peerConnection.ontrack = (event) => {
+                console.log('📥 Received remote track');
+                remoteStream = event.streams[0];
+                const remoteAudio = document.getElementById('remote-audio');
+                if (remoteAudio) {
+                    remoteAudio.srcObject = remoteStream;
+                }
+            };
+            
+            // Handle ICE candidates
+            peerConnection.onicecandidate = async (event) => {
+                if (event.candidate) {
+                    console.log('🧊 New ICE candidate');
+                    await sendSignal(adminId, {
+                        type: 'ice',
+                        candidate: event.candidate.toJSON(),
+                        call_id: currentCallId
+                    });
+                }
+            };
+            
+            // Handle connection state changes
+            peerConnection.onconnectionstatechange = () => {
+                console.log('Connection state:', peerConnection.connectionState);
+                
+                if (peerConnection.connectionState === 'connected') {
+                    console.log('✅ Call connected');
+                    currentCallState = 'connected';
+                    startCallTimer();
+                } else if (peerConnection.connectionState === 'disconnected' || 
+                           peerConnection.connectionState === 'failed') {
+                    console.log('❌ Call disconnected');
+                    hangupCall('Connection lost');
+                }
+            };
+        }
+
+        // ========== Signaling ==========
+        
+        async function sendSignal(targetUserId, signal) {
+            try {
+                await fetch(`${API_URL}/call/signal`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        target_user_id: targetUserId,
+                        signal: signal
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to send signal:', error);
+            }
+        }
+
+        async function pollSignals() {
+            if (!token) return; // Not logged in
+            
+            try {
+                const response = await fetch(`${API_URL}/call/signals`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const signals = await response.json();
+                
+                for (const signalData of signals) {
+                    await handleSignal(signalData.signal, signalData.from);
+                }
+            } catch (error) {
+                // Silently fail - user might not be logged in
+            }
+        }
+
+        async function handleSignal(signal, fromUserId) {
+            console.log('📨 Received signal:', signal.type);
+            
+            // Handle incoming call (offer) even without peer connection
+            if (signal.type === 'offer') {
+                await handleIncomingCall(signal, fromUserId);
+                return;
+            }
+            
+            // For answer and ICE, we need an existing peer connection
+            if (!peerConnection) {
+                console.log('⚠️ No peer connection for', signal.type);
+                return;
+            }
+            
+            if (signal.type === 'answer') {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription({
+                    type: 'answer',
+                    sdp: signal.sdp
+                }));
+                console.log('✅ Answer received, call connecting...');
+                currentCallState = 'connecting';
+                const statusEl = document.getElementById('active-call-status');
+                if (statusEl) statusEl.textContent = 'Connecting...';
+                
+                // Ensure call modal stays visible (for admin calling users)
+                const activeModal = document.getElementById('active-call-modal');
+                if (activeModal && !activeModal.classList.contains('show')) {
+                    activeModal.classList.add('show');
+                }
+                
+                // Check if already connected (sometimes state changes before we receive answer)
+                if (peerConnection.connectionState === 'connected') {
+                    console.log('✅ Already connected, starting timer');
+                    currentCallState = 'connected';
+                    if (statusEl) statusEl.textContent = 'Connected';
+                    if (!callTimerInterval) startCallTimer();
+                }
+                
+            } else if (signal.type === 'ice') {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+            }
+        }
+
+        function startSignalPolling() {
+            signalPollInterval = setInterval(pollSignals, 1000);
+        }
+
+        function stopSignalPolling() {
+            if (signalPollInterval) {
+                clearInterval(signalPollInterval);
+                signalPollInterval = null;
+            }
+        }
+
+        // ========== Incoming Call ==========
+        
+        async function handleIncomingCall(offer, callerUserId) {
+            console.log('📞 Incoming call from user:', callerUserId);
+            
+            currentCallId = offer.call_id;
+            currentCallState = 'ringing';
+            
+            // Get caller name
+            let callerName = 'User';
+            
+            // Show incoming call modal
+            document.getElementById('incoming-caller-name').textContent = `${callerName} is calling...`;
+            document.getElementById('incoming-call-modal').classList.add('show');
+            
+            // Store offer
+            window.pendingOffer = offer;
+            window.pendingCallerId = callerUserId;
+        }
+
+        async function answerCall() {
+            console.log('✅ Answering call...');
+            
+            // Hide incoming call modal
+            document.getElementById('incoming-call-modal').classList.remove('show');
+            
+            try {
+                // Get microphone permission
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Set up peer connection (admin answering, so target is the caller)
+                if (currentUser.role === 'administrator') {
+                    await setupPeerConnectionForUser(window.pendingCallerId);
+                } else {
+                    await setupPeerConnection();
+                }
+                
+                // Set remote description (offer)
+                await peerConnection.setRemoteDescription(new RTCSessionDescription({
+                    type: 'offer',
+                    sdp: window.pendingOffer.sdp
+                }));
+                
+                // Create answer
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                // Send answer back
+                await sendSignal(window.pendingCallerId, {
+                    type: 'answer',
+                    sdp: answer.sdp,
+                    call_id: currentCallId
+                });
+                
+                // Update call status in backend
+                await fetch(`${API_URL}/call/answer`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        call_id: currentCallId,
+                        caller_id: window.pendingCallerId
+                    })
+                });
+                
+                // Show active call UI
+                currentCallState = 'connected';
+                
+                document.getElementById('active-call-name').textContent = 'User';
+                document.getElementById('active-call-status').textContent = 'Connected';
+                document.getElementById('active-call-modal').classList.add('show');
+                
+                startCallTimer();
+                startSignalPolling();
+                
+            } catch (error) {
+                console.error('Failed to answer call:', error);
+                showError('Failed to answer call');
+                rejectCall();
+            }
+        }
+
+        async function rejectCall() {
+            console.log('❌ Rejecting call');
+            
+            document.getElementById('incoming-call-modal').classList.remove('show');
+            
+            if (currentCallId) {
+                await fetch(`${API_URL}/call/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ call_id: currentCallId })
+                });
+            }
+            
+            cleanupCall();
+        }
+
+        // ========== Call Controls ==========
+        
+        async function hangupCall(reason = 'Call ended') {
+            console.log('📴 Hanging up call:', reason);
+            
+            const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
+            
+            if (currentCallId) {
+                await fetch(`${API_URL}/call/hangup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        call_id: currentCallId,
+                        duration: duration
+                    })
+                });
+            }
+            
+            document.getElementById('active-call-modal').classList.remove('show');
+            document.getElementById('incoming-call-modal').classList.remove('show');
+            
+            if (reason && reason !== 'Call ended') {
+                showError(reason);
+            }
+            
+            cleanupCall();
+            
+            const callBtn = document.getElementById('call-admin-btn');
+            if (callBtn) callBtn.disabled = false;
+        }
+
+        function toggleMute() {
+            if (!localStream) return;
+            
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (!audioTrack) return;
+            
+            audioTrack.enabled = !audioTrack.enabled;
+            
+            const muteBtn = document.getElementById('mute-btn');
+            if (audioTrack.enabled) {
+                muteBtn.textContent = '🔇';
+                muteBtn.classList.remove('active');
+            } else {
+                muteBtn.textContent = '🔊';
+                muteBtn.classList.add('active');
+            }
+        }
+
+        function cleanupCall() {
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            
+            stopSignalPolling();
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            if (remoteStream) {
+                remoteStream.getTracks().forEach(track => track.stop());
+                remoteStream = null;
+            }
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            currentCallId = null;
+            currentCallState = null;
+            callStartTime = null;
+            
+            updateMyStatus('online');
+        }
+
+        // ========== UI Functions ==========
+        
+        function showCallingUI() {
+            const adminName = localStorage.getItem(`admin_name_for_user_${currentUser.id}`) || 'Ken';
+            
+            document.getElementById('active-call-name').textContent = adminName;
+            document.getElementById('active-call-status').textContent = 'Calling...';
+            document.getElementById('call-timer').textContent = '00:00';
+            document.getElementById('active-call-modal').classList.add('show');
+        }
+
+        function startCallTimer() {
+            callStartTime = Date.now();
+            
+            callTimerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                
+                const timerDisplay = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                const timerEl = document.getElementById('call-timer');
+                if (timerEl) timerEl.textContent = timerDisplay;
+            }, 1000);
+        }
+
+        // ========== Missed Calls ==========
+        
+        async function loadMissedCalls() {
+            if (!currentUser || currentUser.role !== 'administrator') return;
+            
+            try {
+                const response = await fetch(`${API_URL}/call/missed`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const missedCalls = await response.json();
+                
+                const unseenCount = missedCalls.filter(call => !call.seen).length;
+                const badge = document.getElementById('missed-calls-count');
+                const indicator = document.getElementById('missed-calls-indicator');
+                
+                if (unseenCount > 0) {
+                    badge.textContent = unseenCount;
+                    badge.style.display = 'flex';
+                    indicator.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                    if (missedCalls.length === 0) {
+                        indicator.style.display = 'none';
+                    }
+                }
+                
+                return missedCalls;
+                
+            } catch (error) {
+                console.error('Failed to load missed calls:', error);
+                return [];
+            }
+        }
+
+        async function showMissedCalls() {
+            const missedCalls = await loadMissedCalls();
+            
+            if (missedCalls.length === 0) {
+                showSuccess('No missed calls');
+                return;
+            }
+            
+            let html = '<div class="missed-calls-list">';
+            
+            for (const call of missedCalls) {
+                const time = new Date(call.call_time).toLocaleString();
+                const seenClass = call.seen ? 'seen' : '';
+                
+                html += `
+                    <div class="missed-call-item ${seenClass}">
+                        <div>
+                            <strong>${call.caller_username}</strong><br>
+                            <small>${time}</small>
+                        </div>
+                        <button class="btn-small" onclick="markCallSeen(${call.id})">✓</button>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            
+            showConfirmModal('Missed Calls', html, () => {
+                missedCalls.forEach(call => markCallSeen(call.id));
+            }, 'Mark All Seen', 'Close');
+        }
+
+        async function markCallSeen(callId) {
+            try {
+                await fetch(`${API_URL}/call/mark-seen/${callId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                await loadMissedCalls();
+                
+            } catch (error) {
+                console.error('Failed to mark call as seen:', error);
+            }
+        }
+        
+        console.log('📞 Voice call system loaded');
+    </script>
+</body>
+</html>
