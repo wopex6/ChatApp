@@ -6,6 +6,7 @@ import os
 import bcrypt
 import jwt
 import uuid
+import asyncio
 from datetime import datetime, timedelta
 
 # Import the integrated database system
@@ -947,11 +948,8 @@ def add_conversation_message(session_id):
 
 @app.route('/')
 def index():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    available_models = loop.run_until_complete(ai_compare.get_available_models())
-    loop.close()
-    return render_template('index.html', models=available_models)
+    """ChatApp main interface - redirect to chat interface"""
+    return render_template('chatchat.html')
 
 @app.route('/chatchat')
 def chatchat_interface():
