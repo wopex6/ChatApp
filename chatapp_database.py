@@ -3,26 +3,64 @@ ChatApp Database - Simplified database for human-to-human messaging
 Supports: User authentication, messaging between Ken Tse and users, file attachments
 """
 
-import sqlite3
+import os
 import bcrypt
 import json
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, List, Optional, Any
+
+# Try PostgreSQL first (for Railway), fallback to SQLite
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    USE_POSTGRES = bool(os.getenv('DATABASE_URL'))
+except ImportError:
+    USE_POSTGRES = False
+
+if not USE_POSTGRES:
+    import sqlite3
+    from pathlib import Path
 
 class ChatAppDatabase:
     """
     Simplified database for ChatApp - one-to-many messaging platform
     Ken Tse can message multiple users individually
+    Supports both PostgreSQL (production) and SQLite (local dev)
     """
     
     def __init__(self, db_path: str = "integrated_users.db"):
-        self.db_path = Path(db_path)
+        self.use_postgres = USE_POSTGRES
+        if self.use_postgres:
+            self.db_url = os.getenv('DATABASE_URL')
+            # Fix Railway's postgres:// to postgresql://
+            if self.db_url and self.db_url.startswith('postgres://'):
+                self.db_url = self.db_url.replace('postgres://', 'postgresql://', 1)
+            print(f"🐘 Using PostgreSQL database")
+        else:
+            self.db_path = Path(db_path)
+            print(f"💾 Using SQLite database: {self.db_path}")
         self.init_database()
     
     def get_connection(self):
         """Get database connection"""
-        return sqlite3.connect(self.db_path)
+        if self.use_postgres:
+            return psycopg2.connect(self.db_url)
+        else:
+            return sqlite3.connect(self.db_path)
+    
+    def _sql(self, sqlite_sql: str) -> str:
+        """Convert SQLite SQL to PostgreSQL if needed"""
+        if not self.use_postgres:
+            return sqlite_sql
+        
+        # Convert SQLite to PostgreSQL syntax
+        pg_sql = sqlite_sql
+        pg_sql = pg_sql.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
+        pg_sql = pg_sql.replace('DATETIME', 'TIMESTAMP')
+        pg_sql = pg_sql.replace('TEXT', 'VARCHAR(500)')
+        pg_sql = pg_sql.replace('INTEGER DEFAULT 0', 'INTEGER DEFAULT 0')
+        pg_sql = pg_sql.replace('INTEGER DEFAULT 1', 'INTEGER DEFAULT 1')
+        return pg_sql
     
     def init_database(self):
         """Initialize all database tables"""
@@ -30,7 +68,7 @@ class ChatAppDatabase:
         cursor = conn.cursor()
         
         # Users table for authentication (matches existing schema)
-        cursor.execute('''
+        cursor.execute(self._sql('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
@@ -44,10 +82,10 @@ class ChatAppDatabase:
                 verification_expires DATETIME,
                 is_deleted INTEGER DEFAULT 0
             )
-        ''')
+        '''))
         
         # User profiles table - basic info only
-        cursor.execute('''
+        cursor.execute(self._sql('''
             CREATE TABLE IF NOT EXISTS user_profiles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -59,10 +97,10 @@ class ChatAppDatabase:
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             )
-        ''')
+        '''))
         
         # Messages table for user-Ken Tse communication
-        cursor.execute('''
+        cursor.execute(self._sql('''
             CREATE TABLE IF NOT EXISTS admin_messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -77,10 +115,10 @@ class ChatAppDatabase:
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
                 FOREIGN KEY (reply_to) REFERENCES admin_messages (id) ON DELETE SET NULL
             )
-        ''')
+        '''))
         
         # User status table for online/offline/busy tracking
-        cursor.execute('''
+        cursor.execute(self._sql('''
             CREATE TABLE IF NOT EXISTS user_status (
                 user_id INTEGER PRIMARY KEY,
                 status TEXT DEFAULT 'offline' CHECK (status IN ('online', 'offline', 'in_call', 'busy')),
@@ -89,10 +127,10 @@ class ChatAppDatabase:
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
                 FOREIGN KEY (current_call_with) REFERENCES users (id) ON DELETE SET NULL
             )
-        ''')
+        '''))
         
         # Call history table for tracking all call attempts
-        cursor.execute('''
+        cursor.execute(self._sql('''
             CREATE TABLE IF NOT EXISTS call_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 caller_id INTEGER NOT NULL,
@@ -106,7 +144,7 @@ class ChatAppDatabase:
                 FOREIGN KEY (caller_id) REFERENCES users (id) ON DELETE CASCADE,
                 FOREIGN KEY (callee_id) REFERENCES users (id) ON DELETE CASCADE
             )
-        ''')
+        '''))
         
         conn.commit()
         conn.close()
