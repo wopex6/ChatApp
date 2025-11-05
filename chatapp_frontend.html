@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatApp - Message Ken Tse</title>
+    <title>ChatApp - Message Ken Tse v3</title>
     <style>
         * {
             margin: 0;
@@ -1200,6 +1200,11 @@
                                 <button class="btn-send" onclick="sendMessage()">➤</button>
                                 <input type="file" id="file-input" style="display: none;" onchange="handleFileSelect(event)">
                             </div>
+                            <!-- File Preview -->
+                            <div id="file-preview" class="file-preview">
+                                <span id="file-preview-name" class="file-preview-name"></span>
+                                <button class="file-preview-remove" onclick="removeFile()">✕ Remove</button>
+                            </div>
                             <!-- Emoji Picker -->
                             <div id="emoji-picker" class="emoji-picker">
                                 <div id="emoji-grid" class="emoji-grid"></div>
@@ -1334,6 +1339,7 @@
         let adminMessageInterval = null;  // Separate interval for admin message view
         let selectedFile = null;
         let replyToId = null;  // Track message being replied to
+        let lastMessageIds = null;  // Track message IDs to prevent unnecessary reloads
         
         // Voice call variables
         let heartbeatInterval = null;
@@ -1770,6 +1776,13 @@
         function displayMessages(messages) {
             const container = document.getElementById('messages-container');
             
+            // Check if messages have changed (prevent reloading video/audio)
+            const currentMessageIds = messages.map(m => `${m.id}-${m.is_read}`).join(',');
+            if (currentMessageIds === lastMessageIds) {
+                return; // No changes, skip reload
+            }
+            lastMessageIds = currentMessageIds;
+            
             if (messages.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: #666;">No messages yet. Start the conversation!</p>';
                 return;
@@ -2070,6 +2083,7 @@
                     input.style.height = 'auto'; // Reset textarea height
                     removeFile();
                     cancelReply();
+                    lastMessageIds = null; // Force refresh after sending
                     if (currentUser.role === 'administrator' && selectedUserId) {
                         await loadUserMessages(selectedUserId);
                         await loadUserList(); // Refresh unread counts IMMEDIATELY
