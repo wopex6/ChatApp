@@ -21,6 +21,57 @@ if not USE_POSTGRES:
     import sqlite3
     from pathlib import Path
 
+# Wrapper classes to unify SQLite and PostgreSQL interfaces
+class PostgreSQLCursorWrapper:
+    """Wrapper to convert ? to %s for PostgreSQL"""
+    def __init__(self, cursor):
+        self.cursor = cursor
+        self.lastrowid = None
+    
+    def execute(self, sql, params=None):
+        """Execute with parameter conversion"""
+        pg_sql = sql.replace('?', '%s')
+        
+        # Add RETURNING id for INSERT statements to get lastrowid
+        if sql.strip().upper().startswith('INSERT') and 'RETURNING' not in sql.upper():
+            pg_sql = pg_sql.rstrip().rstrip(';') + ' RETURNING id'
+        
+        result = self.cursor.execute(pg_sql, params) if params else self.cursor.execute(pg_sql)
+        
+        # Get lastrowid for INSERT statements
+        if sql.strip().upper().startswith('INSERT'):
+            try:
+                row = self.cursor.fetchone()
+                self.lastrowid = row[0] if row else None
+            except:
+                self.lastrowid = None
+        
+        return result
+    
+    def fetchone(self):
+        return self.cursor.fetchone()
+    
+    def fetchall(self):
+        return self.cursor.fetchall()
+    
+    def close(self):
+        return self.cursor.close()
+
+class PostgreSQLConnectionWrapper:
+    """Wrapper to provide unified connection interface"""
+    def __init__(self, conn):
+        self.conn = conn
+        self._in_transaction = False
+    
+    def cursor(self):
+        return PostgreSQLCursorWrapper(self.conn.cursor())
+    
+    def commit(self):
+        return self.conn.commit()
+    
+    def close(self):
+        return self.conn.close()
+
 class ChatAppDatabase:
     """
     Simplified database for ChatApp - one-to-many messaging platform
@@ -42,9 +93,11 @@ class ChatAppDatabase:
         self.init_database()
     
     def get_connection(self):
-        """Get database connection"""
+        """Get database connection with unified interface"""
         if self.use_postgres:
-            return psycopg2.connect(self.db_url)
+            conn = psycopg2.connect(self.db_url)
+            # Wrap connection to auto-convert ? to %s
+            return PostgreSQLConnectionWrapper(conn)
         else:
             return sqlite3.connect(self.db_path)
     
