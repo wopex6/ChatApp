@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatApp - Message Ken Tse v3</title>
+    <title>ChatApp - Message Ken Tse v4</title>
     <style>
         * {
             margin: 0;
@@ -1566,6 +1566,11 @@
         }
 
         async function updateUserWelcomeMessage() {
+            // Guard: Exit if user not loaded yet
+            if (!currentUser || !currentUser.id) {
+                return;
+            }
+            
             // For regular users, show: "Welcome <user>, <admin> is <status>" (but hide "Online")
             const adminDisplayName = localStorage.getItem(`admin_name_for_user_${currentUser.id}`) || 'Ken';
             const status = await getUserStatus(adminId);
