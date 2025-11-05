@@ -38,3 +38,7 @@ uploads/
 
 # Test files
 test_screenshots/
+
+# AI project files (not for ChatApp)
+app.py
+integrated_database.py
