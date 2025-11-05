@@ -36,6 +36,27 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 # Initialize database
 db = ChatAppDatabase()
 
+# ============= Auto-create Admin Account =============
+
+def ensure_admin_exists():
+    """Ensure admin account exists on startup"""
+    admin = db.get_admin_user()
+    if not admin:
+        print("🔧 Creating default admin account...")
+        user_id = db.create_user("Ken Tse", "ken@chatapp.com", "admin123")
+        if user_id:
+            db.update_user_role(user_id, 'administrator')
+            print("✅ Admin account created!")
+            print("   Email: ken@chatapp.com")
+            print("   Password: admin123")
+        else:
+            print("❌ Failed to create admin account")
+    else:
+        print(f"✅ Admin account exists: {admin['username']}")
+
+# Create admin on startup
+ensure_admin_exists()
+
 # ============= Helper Functions =============
 
 def allowed_file(filename):
