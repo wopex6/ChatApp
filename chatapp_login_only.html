@@ -1607,10 +1607,43 @@
             }
         }
 
+        // Helper function to parse timestamps reliably across all browsers (iOS, Android, etc.)
+        // Displays times in the client's local timezone
+        function parseTimestamp(timestamp) {
+            if (!timestamp) return null;
+            
+            // Convert SQLite format "YYYY-MM-DD HH:MM:SS" to ISO 8601 format
+            // WITHOUT 'Z' so it interprets as local time, then displays in client's timezone
+            let isoString = timestamp;
+            
+            // If format is "YYYY-MM-DD HH:MM:SS", convert to "YYYY-MM-DDTHH:MM:SS"
+            if (timestamp.includes(' ') && !timestamp.includes('T')) {
+                isoString = timestamp.replace(' ', 'T');
+            }
+            // If format is "YYYY-MM-DD HH:MM:SS.ffffff", handle microseconds
+            else if (timestamp.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+$/)) {
+                // Remove microseconds for better browser compatibility
+                const withoutMicro = timestamp.replace(/\.\d+$/, '');
+                isoString = withoutMicro.replace(' ', 'T');
+            }
+            
+            const date = new Date(isoString);
+            
+            // Validate the date
+            if (isNaN(date.getTime())) {
+                console.error('Invalid date:', timestamp);
+                return null;
+            }
+            
+            return date;
+        }
+
         function formatTimestamp(timestamp) {
             if (!timestamp) return '';
-            // Parse timestamp (SQLite returns UTC, convert to local)
-            const date = new Date(timestamp + ' UTC');
+            
+            const date = parseTimestamp(timestamp);
+            if (!date) return '';
+            
             const now = new Date();
             const diff = now - date;
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -1751,7 +1784,9 @@
             let html = '';
             
             messages.forEach((msg, index) => {
-                const msgDate = new Date(msg.timestamp);
+                const msgDate = parseTimestamp(msg.timestamp);
+                if (!msgDate) return; // Skip invalid dates
+                
                 const dateStr = msgDate.toLocaleDateString();
                 const timeStr = msgDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
                 
@@ -3332,7 +3367,8 @@
             let html = '<div class="missed-calls-list">';
             
             for (const call of missedCalls) {
-                const time = new Date(call.call_time).toLocaleString();
+                const callDate = parseTimestamp(call.call_time);
+                const time = callDate ? callDate.toLocaleString() : 'Unknown time';
                 const seenClass = call.seen ? 'seen' : '';
                 
                 html += `
