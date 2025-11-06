@@ -10,11 +10,24 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 
 # Try PostgreSQL first (for Railway), fallback to SQLite
+USE_POSTGRES = False
+POSTGRES_ERROR = None
+
 try:
     import psycopg2
     from psycopg2.extras import RealDictCursor
-    USE_POSTGRES = bool(os.getenv('DATABASE_URL'))
-except ImportError:
+    
+    # Check if DATABASE_URL exists
+    db_url = os.getenv('DATABASE_URL')
+    if db_url:
+        USE_POSTGRES = True
+        print(f"✅ DATABASE_URL found: {db_url[:30]}...")
+    else:
+        print("⚠️  DATABASE_URL not found in environment variables")
+        POSTGRES_ERROR = "DATABASE_URL not set"
+except ImportError as e:
+    print(f"⚠️  psycopg2 import failed: {e}")
+    POSTGRES_ERROR = f"psycopg2 import failed: {e}"
     USE_POSTGRES = False
 
 if not USE_POSTGRES:
@@ -87,9 +100,12 @@ class ChatAppDatabase:
             if self.db_url and self.db_url.startswith('postgres://'):
                 self.db_url = self.db_url.replace('postgres://', 'postgresql://', 1)
             print(f"🐘 Using PostgreSQL database")
+            print(f"   Connection: {self.db_url[:50]}...")
         else:
             self.db_path = Path(db_path)
             print(f"💾 Using SQLite database: {self.db_path}")
+            if POSTGRES_ERROR:
+                print(f"   Reason: {POSTGRES_ERROR}")
         self.init_database()
     
     def get_connection(self):
