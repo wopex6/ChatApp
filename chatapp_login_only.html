@@ -2414,6 +2414,45 @@
             }
         });
 
+        // ========== F5 Key: Refresh Data Instead of Page Reload ==========
+        
+        document.addEventListener('keydown', (e) => {
+            // Check if F5 key is pressed (key code 116 or key name 'F5')
+            if (e.key === 'F5' || e.keyCode === 116) {
+                e.preventDefault(); // Prevent page reload
+                
+                // Refresh data based on current screen
+                const authSection = document.getElementById('auth-section');
+                const chatSection = document.getElementById('chat-section');
+                
+                if (chatSection && chatSection.style.display !== 'none') {
+                    // User is logged in - refresh chat data
+                    console.log('🔄 F5: Refreshing chat data...');
+                    
+                    // Refresh messages
+                    if (typeof loadMessages === 'function') {
+                        loadMessages();
+                    }
+                    
+                    // Refresh user list if admin
+                    if (currentUser && currentUser.role === 'administrator') {
+                        if (typeof loadUserList === 'function') {
+                            loadUserList();
+                        }
+                        if (typeof loadAllUsers === 'function' && currentAdminTab === 'users') {
+                            loadAllUsers(showDeletedUsers);
+                        }
+                    }
+                    
+                    // Show feedback
+                    showSuccess('Data refreshed');
+                } else if (authSection && authSection.style.display !== 'none') {
+                    // User is on login screen - just prevent reload
+                    console.log('🔄 F5: On login screen, prevented reload');
+                }
+            }
+        });
+
         // ========== Admin User Management ==========
 
         async function loadAllUsers(includeDeleted) {
