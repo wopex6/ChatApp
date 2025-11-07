@@ -387,8 +387,8 @@ class ChatAppDatabase:
             FROM users u
             WHERE u.is_deleted = 0 AND u.user_role != 'administrator'
             ORDER BY 
-                CASE WHEN last_message_time IS NULL THEN 0 ELSE 1 END,
-                last_message_time DESC, 
+                CASE WHEN (SELECT MAX(timestamp) FROM admin_messages WHERE user_id = u.id) IS NULL THEN 0 ELSE 1 END,
+                (SELECT MAX(timestamp) FROM admin_messages WHERE user_id = u.id) DESC, 
                 u.username ASC
         ''')
         
