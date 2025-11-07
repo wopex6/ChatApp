@@ -441,12 +441,16 @@ def delete_user(user_id):
 def restore_user(user_id):
     """Restore a soft-deleted user (Ken Tse only)"""
     try:
+        print(f"[API Restore] Request to restore user_id: {user_id}")
         success = db.restore_user(user_id)
         if success:
-            return jsonify({'success': True, 'message': 'User restored successfully'}), 200
+            print(f"[API Restore] Success - user {user_id} restored")
+            return jsonify({'success': True, 'message': 'User restored'}), 200
         else:
+            print(f"[API Restore] Failed - no rows updated for user {user_id}")
             return jsonify({'error': 'Failed to restore user'}), 500
     except Exception as e:
+        print(f"[API Restore] Error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/users/<int:user_id>/permanent-delete', methods=['POST'])
@@ -454,16 +458,22 @@ def restore_user(user_id):
 def permanent_delete_user(user_id):
     """Permanently delete a user and all their data (Ken Tse only)"""
     try:
+        print(f"[API Permanent Delete] Request to permanently delete user_id: {user_id}")
+        
         # Don't allow deleting yourself
         if user_id == request.user_id:
+            print(f"[API Permanent Delete] Blocked - cannot delete self")
             return jsonify({'error': 'Cannot delete your own account'}), 400
         
         success = db.permanent_delete_user(user_id)
         if success:
+            print(f"[API Permanent Delete] Success - user {user_id} permanently deleted")
             return jsonify({'success': True, 'message': 'User permanently deleted'}), 200
         else:
+            print(f"[API Permanent Delete] Failed - no rows deleted for user {user_id}")
             return jsonify({'error': 'Failed to permanently delete user'}), 500
     except Exception as e:
+        print(f"[API Permanent Delete] Error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/users/bulk-delete-deleted', methods=['POST'])

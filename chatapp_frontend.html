@@ -2579,14 +2579,17 @@
                 });
 
                 if (response.ok) {
-                    showSuccess(`User ${username} restored successfully`);
-                    loadAllUsers(true); // Reload
+                    showSuccess(`✅ User ${username} restored successfully`);
+                    // Reload with current checkbox state
+                    const checkbox = document.getElementById('show-deleted-toggle');
+                    await loadAllUsers(checkbox.checked);
                 } else {
                     const data = await response.json();
                     showError(data.error || 'Failed to restore user');
                 }
             } catch (error) {
-                showError('Failed to restore user');
+                console.error('Restore error:', error);
+                showError('Failed to restore user: ' + error.message);
             }
         }
 
@@ -2596,20 +2599,26 @@
                 `Are you sure you want to PERMANENTLY delete ${username}? This CANNOT be undone! All their messages will be deleted.`,
                 async () => {
                     try {
+                        console.log(`[Permanent Delete] Deleting user ${userId} (${username})`);
                         const response = await fetch(`${API_URL}/admin/users/${userId}/permanent-delete`, {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
 
+                        const data = await response.json();
+                        console.log(`[Permanent Delete] Response:`, data);
+
                         if (response.ok) {
-                            showSuccess(`User ${username} permanently deleted`);
-                            loadAllUsers(true); // Reload
+                            showSuccess(`✅ User ${username} permanently deleted`);
+                            // Reload with current checkbox state
+                            const checkbox = document.getElementById('show-deleted-toggle');
+                            await loadAllUsers(checkbox.checked);
                         } else {
-                            const data = await response.json();
-                            showError(data.error || 'Failed to delete user');
+                            showError(data.error || 'Failed to permanently delete user');
                         }
                     } catch (error) {
-                        showError('Failed to delete user');
+                        console.error('Permanent delete error:', error);
+                        showError('Failed to permanently delete user: ' + error.message);
                     }
                 }
             );

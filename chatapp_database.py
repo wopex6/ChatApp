@@ -692,12 +692,17 @@ class ChatAppDatabase:
         cursor = conn.cursor()
         
         try:
+            print(f"[Restore User] Restoring user_id: {user_id}")
             cursor.execute('''
                 UPDATE users SET is_deleted = 0, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             ''', (user_id,))
             conn.commit()
+            print(f"[Restore User] Updated {cursor.rowcount} rows")
             return cursor.rowcount > 0
+        except Exception as e:
+            print(f"[Restore User] ERROR: {e}")
+            raise
         finally:
             conn.close()
     
@@ -707,12 +712,27 @@ class ChatAppDatabase:
         cursor = conn.cursor()
         
         try:
+            print(f"[Permanent Delete] Starting delete for user_id: {user_id}")
+            
             # Delete in order: messages, profile, user
             cursor.execute('DELETE FROM admin_messages WHERE user_id = ?', (user_id,))
+            messages_deleted = cursor.rowcount
+            print(f"[Permanent Delete] Deleted {messages_deleted} messages")
+            
             cursor.execute('DELETE FROM user_profiles WHERE user_id = ?', (user_id,))
+            profiles_deleted = cursor.rowcount
+            print(f"[Permanent Delete] Deleted {profiles_deleted} profiles")
+            
             cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+            users_deleted = cursor.rowcount
+            print(f"[Permanent Delete] Deleted {users_deleted} users")
+            
             conn.commit()
-            return cursor.rowcount > 0
+            print(f"[Permanent Delete] Commit successful, returning {users_deleted > 0}")
+            return users_deleted > 0
+        except Exception as e:
+            print(f"[Permanent Delete] ERROR: {e}")
+            raise
         finally:
             conn.close()
     
