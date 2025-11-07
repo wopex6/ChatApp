@@ -45,14 +45,18 @@ class PostgreSQLCursorWrapper:
         """Execute with parameter conversion"""
         pg_sql = sql.replace('?', '%s')
         
-        # Add RETURNING id for INSERT statements to get lastrowid
-        if sql.strip().upper().startswith('INSERT') and 'RETURNING' not in sql.upper():
+        # Add RETURNING id for INSERT statements (but NOT for UPSERT with ON CONFLICT)
+        # UPSERT queries don't always return id and may not have an id column
+        if (sql.strip().upper().startswith('INSERT') and 
+            'RETURNING' not in sql.upper() and 
+            'ON CONFLICT' not in sql.upper()):
             pg_sql = pg_sql.rstrip().rstrip(';') + ' RETURNING id'
         
         result = self.cursor.execute(pg_sql, params) if params else self.cursor.execute(pg_sql)
         
-        # Get lastrowid for INSERT statements
-        if sql.strip().upper().startswith('INSERT'):
+        # Get lastrowid for INSERT statements (skip for UPSERT)
+        if (sql.strip().upper().startswith('INSERT') and 
+            'ON CONFLICT' not in sql.upper()):
             try:
                 row = self.cursor.fetchone()
                 self.lastrowid = row[0] if row else None
