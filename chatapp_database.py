@@ -9,6 +9,10 @@ import json
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
+# Import sqlite3 and Path unconditionally (needed for exception handling)
+import sqlite3
+from pathlib import Path
+
 # Try PostgreSQL first (for Railway), fallback to SQLite
 USE_POSTGRES = False
 POSTGRES_ERROR = None
@@ -29,10 +33,6 @@ except ImportError as e:
     print(f"⚠️  psycopg2 import failed: {e}")
     POSTGRES_ERROR = f"psycopg2 import failed: {e}"
     USE_POSTGRES = False
-
-if not USE_POSTGRES:
-    import sqlite3
-    from pathlib import Path
 
 # Wrapper classes to unify SQLite and PostgreSQL interfaces
 class PostgreSQLCursorWrapper:
@@ -242,8 +242,13 @@ class ChatAppDatabase:
             
             conn.commit()
             return user_id
-        except sqlite3.IntegrityError:
-            return None
+        except (sqlite3.IntegrityError, Exception) as e:
+            # Handle both SQLite and PostgreSQL integrity errors
+            # PostgreSQL raises psycopg2.IntegrityError, SQLite raises sqlite3.IntegrityError
+            if 'IntegrityError' in str(type(e).__name__) or 'unique' in str(e).lower():
+                return None
+            # Re-raise other exceptions
+            raise
         finally:
             conn.close()
     
