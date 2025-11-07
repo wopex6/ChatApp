@@ -337,8 +337,11 @@ def get_admin_users():
         if request.user_role != 'administrator':
             return jsonify({'error': 'Unauthorized'}), 403
         
-        # Get all users (not just those with conversations)
-        users = db.get_all_users_for_admin()
+        # Check if include_deleted parameter is passed
+        include_deleted = request.args.get('include_deleted', 'false').lower() == 'true'
+        
+        # Get all users
+        users = db.get_all_users_for_admin(include_deleted=include_deleted)
         return jsonify(users), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

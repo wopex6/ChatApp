@@ -221,11 +221,32 @@ class ChatAppDatabase:
     # ============= Authentication Methods =============
     
     def create_user(self, username: str, email: str, password: str, role: str = 'user') -> Optional[int]:
-        """Create a new user"""
+        """Create a new user or restore a deleted user with the same username"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
         try:
+            # Check if a deleted user with this username exists
+            cursor.execute('SELECT id, is_deleted FROM users WHERE username = ?', (username,))
+            existing_user = cursor.fetchone()
+            
+            if existing_user:
+                user_id, is_deleted = existing_user
+                if is_deleted:
+                    # Restore the deleted user with new credentials
+                    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    cursor.execute('''
+                        UPDATE users 
+                        SET email = ?, password_hash = ?, is_deleted = 0, user_role = ?
+                        WHERE id = ?
+                    ''', (email, password_hash, role, user_id))
+                    conn.commit()
+                    return user_id
+                else:
+                    # User exists and is not deleted - duplicate username
+                    return None
+            
+            # No existing user - create new one
             password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             cursor.execute('''
                 INSERT INTO users (username, email, password_hash, user_role, email_verified)
@@ -374,23 +395,30 @@ class ChatAppDatabase:
         
         return result[0] if result else None
     
-    def get_all_users_for_admin(self) -> List[Dict[str, Any]]:
-        """Get all active users for admin (excluding admin themselves)"""
+    def get_all_users_for_admin(self, include_deleted: bool = False) -> List[Dict[str, Any]]:
+        """Get all users for admin (excluding admin themselves)"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute('''
-            SELECT u.id, u.username, u.email, u.user_role,
+        # Build WHERE clause based on include_deleted parameter
+        where_clause = "u.user_role != 'administrator'"
+        if not include_deleted:
+            where_clause += " AND u.is_deleted = 0"
+        
+        query = f'''
+            SELECT u.id, u.username, u.email, u.user_role, u.is_deleted,
                    (SELECT COUNT(*) FROM admin_messages WHERE user_id = u.id) as message_count,
                    (SELECT MAX(timestamp) FROM admin_messages WHERE user_id = u.id) as last_message_time,
                    (SELECT COUNT(*) FROM admin_messages WHERE user_id = u.id AND sender_type = 'user' AND is_read = 0) as unread_count
             FROM users u
-            WHERE u.is_deleted = 0 AND u.user_role != 'administrator'
+            WHERE {where_clause}
             ORDER BY 
+                u.is_deleted ASC,
                 CASE WHEN (SELECT MAX(timestamp) FROM admin_messages WHERE user_id = u.id) IS NULL THEN 0 ELSE 1 END,
                 (SELECT MAX(timestamp) FROM admin_messages WHERE user_id = u.id) DESC, 
                 u.username ASC
-        ''')
+        '''
+        cursor.execute(query)
         
         users = []
         for row in cursor.fetchall():
@@ -399,9 +427,10 @@ class ChatAppDatabase:
                 'username': row[1],
                 'email': row[2],
                 'role': row[3],
-                'message_count': row[4] or 0,
-                'last_message_time': row[5],
-                'unread_count': row[6] or 0
+                'is_deleted': row[4],
+                'message_count': row[5] or 0,
+                'last_message_time': row[6],
+                'unread_count': row[7] or 0
             })
         
         conn.close()
