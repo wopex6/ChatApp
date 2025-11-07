@@ -109,6 +109,15 @@ def signup():
         if not all([username, email, password]):
             return jsonify({'error': 'Missing required fields'}), 400
         
+        # Check if username belongs to a deleted user
+        deleted_user = db.check_deleted_user(username)
+        if deleted_user:
+            return jsonify({
+                'error': 'account_deleted',
+                'message': 'This account has been deleted. Please submit a restoration request to regain access.',
+                'username': username
+            }), 403
+        
         user_id = db.create_user(username, email, password)
         
         if not user_id:
@@ -206,6 +215,70 @@ def change_password():
         else:
             return jsonify({'error': 'Failed to update password'}), 500
     
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============= Restoration Request Endpoints =============
+
+@app.route('/api/auth/request-restoration', methods=['POST'])
+def request_restoration():
+    """Submit a restoration request for deleted account"""
+    try:
+        data = request.json
+        username = data.get('username')
+        email = data.get('email')
+        message = data.get('message', '')
+        
+        if not all([username, email]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Verify that this username is actually deleted
+        deleted_user = db.check_deleted_user(username)
+        if not deleted_user:
+            return jsonify({'error': 'Username not found or not deleted'}), 404
+        
+        request_id = db.submit_restoration_request(username, email, message)
+        return jsonify({
+            'message': 'Restoration request submitted successfully. An administrator will review your request.',
+            'request_id': request_id
+        }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/restoration-requests', methods=['GET'])
+@require_admin
+def get_restoration_requests():
+    """Get all restoration requests (admin only)"""
+    try:
+        status = request.args.get('status')  # Optional filter: pending, approved, denied
+        requests = db.get_restoration_requests(status)
+        return jsonify(requests), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/restoration-requests/<int:request_id>/approve', methods=['POST'])
+@require_admin
+def approve_restoration(request_id):
+    """Approve a restoration request (admin only)"""
+    try:
+        success = db.approve_restoration_request(request_id, request.user_id)
+        if success:
+            return jsonify({'message': 'User account restored successfully'}), 200
+        else:
+            return jsonify({'error': 'Request not found or already processed'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/restoration-requests/<int:request_id>/deny', methods=['POST'])
+@require_admin
+def deny_restoration(request_id):
+    """Deny a restoration request (admin only)"""
+    try:
+        success = db.deny_restoration_request(request_id, request.user_id)
+        if success:
+            return jsonify({'message': 'Restoration request denied'}), 200
+        else:
+            return jsonify({'error': 'Request not found or already processed'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

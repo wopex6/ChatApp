@@ -208,14 +208,28 @@ class ChatAppDatabase:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 caller_id INTEGER NOT NULL,
                 callee_id INTEGER NOT NULL,
-                call_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-                call_status TEXT CHECK (call_status IN ('missed', 'answered', 'rejected', 'dropped', 'ongoing')),
-                call_duration INTEGER DEFAULT 0,
-                answered_at DATETIME,
-                ended_at DATETIME,
-                seen_by_callee INTEGER DEFAULT 0,
+                call_type TEXT DEFAULT 'voice' CHECK (call_type IN ('voice', 'video')),
+                status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'answered', 'missed', 'declined', 'failed')),
+                start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                end_time DATETIME,
+                duration INTEGER DEFAULT 0,
                 FOREIGN KEY (caller_id) REFERENCES users (id) ON DELETE CASCADE,
                 FOREIGN KEY (callee_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        '''))
+        
+        # Restoration requests table
+        cursor.execute(self._sql('''
+            CREATE TABLE IF NOT EXISTS restoration_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                email TEXT NOT NULL,
+                message TEXT,
+                status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'denied')),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                reviewed_at DATETIME,
+                reviewed_by INTEGER,
+                FOREIGN KEY (reviewed_by) REFERENCES users (id)
             )
         '''))
         
@@ -225,32 +239,20 @@ class ChatAppDatabase:
     # ============= Authentication Methods =============
     
     def create_user(self, username: str, email: str, password: str, role: str = 'user') -> Optional[int]:
-        """Create a new user or restore a deleted user with the same username"""
+        """Create a new user (deleted users cannot re-signup)"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
         try:
-            # Check if a deleted user with this username exists
+            # Check if username exists (including deleted users)
             cursor.execute('SELECT id, is_deleted FROM users WHERE username = ?', (username,))
             existing_user = cursor.fetchone()
             
             if existing_user:
-                user_id, is_deleted = existing_user
-                if is_deleted:
-                    # Restore the deleted user with new credentials
-                    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                    cursor.execute('''
-                        UPDATE users 
-                        SET email = ?, password_hash = ?, is_deleted = 0, user_role = ?
-                        WHERE id = ?
-                    ''', (email, password_hash, role, user_id))
-                    conn.commit()
-                    return user_id
-                else:
-                    # User exists and is not deleted - duplicate username
-                    return None
+                # Username already taken (whether deleted or not)
+                return None
             
-            # No existing user - create new one
+            # Create new user
             password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             cursor.execute('''
                 INSERT INTO users (username, email, password_hash, user_role, email_verified)
@@ -921,5 +923,136 @@ class ChatAppDatabase:
                 'status': row[4],
                 'duration': row[5]
             } for row in cursor.fetchall()]
+        finally:
+            conn.close()
+    
+    # ============= Restoration Request Methods =============
+    
+    def check_deleted_user(self, username: str) -> Optional[Dict[str, Any]]:
+        """Check if username belongs to a deleted user"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                SELECT id, username, email, is_deleted
+                FROM users
+                WHERE username = ?
+            ''', (username,))
+            row = cursor.fetchone()
+            
+            if row and row[3]:  # is_deleted
+                return {
+                    'id': row[0],
+                    'username': row[1],
+                    'email': row[2],
+                    'is_deleted': True
+                }
+            return None
+        finally:
+            conn.close()
+    
+    def submit_restoration_request(self, username: str, email: str, message: str) -> int:
+        """Submit a restoration request for a deleted account"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                INSERT INTO restoration_requests (username, email, message)
+                VALUES (?, ?, ?)
+            ''', (username, email, message))
+            conn.commit()
+            return cursor.lastrowid
+        finally:
+            conn.close()
+    
+    def get_restoration_requests(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get restoration requests, optionally filtered by status"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            if status:
+                cursor.execute('''
+                    SELECT r.id, r.username, r.email, r.message, r.status, 
+                           r.created_at, r.reviewed_at, r.reviewed_by,
+                           u.username as reviewed_by_name
+                    FROM restoration_requests r
+                    LEFT JOIN users u ON r.reviewed_by = u.id
+                    WHERE r.status = ?
+                    ORDER BY r.created_at DESC
+                ''', (status,))
+            else:
+                cursor.execute('''
+                    SELECT r.id, r.username, r.email, r.message, r.status, 
+                           r.created_at, r.reviewed_at, r.reviewed_by,
+                           u.username as reviewed_by_name
+                    FROM restoration_requests r
+                    LEFT JOIN users u ON r.reviewed_by = u.id
+                    ORDER BY r.created_at DESC
+                ''')
+            
+            return [{
+                'id': row[0],
+                'username': row[1],
+                'email': row[2],
+                'message': row[3],
+                'status': row[4],
+                'created_at': row[5],
+                'reviewed_at': row[6],
+                'reviewed_by': row[7],
+                'reviewed_by_name': row[8]
+            } for row in cursor.fetchall()]
+        finally:
+            conn.close()
+    
+    def approve_restoration_request(self, request_id: int, admin_id: int) -> bool:
+        """Approve restoration request and restore the user"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Get request details
+            cursor.execute('''
+                SELECT username FROM restoration_requests WHERE id = ? AND status = 'pending'
+            ''', (request_id,))
+            request = cursor.fetchone()
+            
+            if not request:
+                return False
+            
+            username = request[0]
+            
+            # Restore the user
+            cursor.execute('''
+                UPDATE users SET is_deleted = 0 WHERE username = ?
+            ''', (username,))
+            
+            # Mark request as approved
+            cursor.execute('''
+                UPDATE restoration_requests
+                SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?
+                WHERE id = ?
+            ''', (admin_id, request_id))
+            
+            conn.commit()
+            return True
+        finally:
+            conn.close()
+    
+    def deny_restoration_request(self, request_id: int, admin_id: int) -> bool:
+        """Deny restoration request"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                UPDATE restoration_requests
+                SET status = 'denied', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?
+                WHERE id = ? AND status = 'pending'
+            ''', (admin_id, request_id))
+            conn.commit()
+            return cursor.rowcount > 0
         finally:
             conn.close()
