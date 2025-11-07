@@ -518,7 +518,7 @@ def favicon():
 @app.route('/')
 def index():
     """Serve the main chat interface"""
-    return send_from_directory('.', 'chatapp_login_only.html')
+    return send_from_directory('.', 'chatapp_frontend.html')
 
 @app.route('/user_logon')
 def user_logon():
