@@ -1317,6 +1317,7 @@
         let callStartTime = null;
         let callTimerInterval = null;
         let signalPollInterval = null;
+        let callTimeoutTimer = null;  // For call timeout handling
         let adminId = null;  // Will be set on login
 
         // Emoji list
@@ -1467,6 +1468,10 @@
                     
                     // Start heartbeat for status tracking
                     startHeartbeat();
+                    
+                    // Start signal polling for incoming calls (CRITICAL FIX)
+                    startSignalPolling();
+                    console.log('✅ Signal polling started for incoming calls');
                     
                     // Load missed calls if admin
                     if (currentUser.role === 'administrator') {
@@ -2816,9 +2821,10 @@
                 // Start polling for signals
                 startSignalPolling();
                 
-                // Set timeout
-                setTimeout(() => {
+                // Set timeout and store it
+                callTimeoutTimer = setTimeout(() => {
                     if (currentCallState === 'calling') {
+                        console.log('⏰ Call timeout - no answer');
                         hangupCall('No answer');
                     }
                 }, 30000);
@@ -2917,9 +2923,10 @@
                 // Start polling for signals
                 startSignalPolling();
                 
-                // Set timeout
-                setTimeout(() => {
+                // Set timeout and store it
+                callTimeoutTimer = setTimeout(() => {
                     if (currentCallState === 'calling') {
+                        console.log('⏰ Call timeout - no answer');
                         hangupCall('No answer');
                     }
                 }, 30000);
@@ -2983,6 +2990,13 @@
                 if (peerConnection.connectionState === 'connected') {
                     console.log('✅ Call connected');
                     currentCallState = 'connected';
+                    
+                    // Clear timeout since call connected
+                    if (callTimeoutTimer) {
+                        clearTimeout(callTimeoutTimer);
+                        callTimeoutTimer = null;
+                        console.log('⏰ Call timeout cleared - connected');
+                    }
                     
                     // Update UI to show connected
                     const statusEl = document.getElementById('active-call-status');
@@ -3173,6 +3187,12 @@
         async function answerCall() {
             console.log('✅ Answering call...');
             
+            // Clear any existing timeout
+            if (callTimeoutTimer) {
+                clearTimeout(callTimeoutTimer);
+                callTimeoutTimer = null;
+            }
+            
             // Hide incoming call modal
             document.getElementById('incoming-call-modal').classList.remove('show');
             
@@ -3309,6 +3329,12 @@
             if (callTimerInterval) {
                 clearInterval(callTimerInterval);
                 callTimerInterval = null;
+            }
+            
+            // Clear call timeout if still active
+            if (callTimeoutTimer) {
+                clearTimeout(callTimeoutTimer);
+                callTimeoutTimer = null;
             }
             
             stopSignalPolling();
