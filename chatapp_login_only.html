@@ -3207,11 +3207,17 @@
                 
                 const signals = await response.json();
                 
+                if (signals && signals.length > 0) {
+                    console.log(`📡 Received ${signals.length} signal(s)`);
+                }
+                
                 for (const signalData of signals) {
+                    console.log('Processing signal from user:', signalData.from);
                     await handleSignal(signalData.signal, signalData.from);
                 }
             } catch (error) {
-                // Silently fail - user might not be logged in
+                console.error('Signal polling error:', error);
+                // Continue polling even if there's an error
             }
         }
 
@@ -3237,6 +3243,14 @@
                 }));
                 console.log('✅ Answer received, call connecting...');
                 currentCallState = 'connecting';
+                
+                // Clear timeout since other side answered
+                if (callTimeoutTimer) {
+                    clearTimeout(callTimeoutTimer);
+                    callTimeoutTimer = null;
+                    console.log('⏰ Call timeout cleared - answer received');
+                }
+                
                 const statusEl = document.getElementById('active-call-status');
                 if (statusEl) statusEl.textContent = 'Connecting...';
                 
@@ -3280,16 +3294,35 @@
         
         async function handleIncomingCall(offer, callerUserId) {
             console.log('📞 Incoming call from user:', callerUserId);
+            console.log('Current user role:', currentUser?.role);
+            console.log('Offer details:', offer);
             
             currentCallId = offer.call_id;
             currentCallState = 'ringing';
             
             // Get caller name
             let callerName = 'User';
+            if (currentUser?.role === 'administrator') {
+                callerName = `User ${callerUserId}`;
+            }
             
             // Show incoming call modal
-            document.getElementById('incoming-caller-name').textContent = `${callerName} is calling...`;
-            document.getElementById('incoming-call-modal').classList.add('show');
+            const modal = document.getElementById('incoming-call-modal');
+            const nameEl = document.getElementById('incoming-caller-name');
+            
+            console.log('Modal element:', modal);
+            console.log('Name element:', nameEl);
+            
+            if (nameEl) {
+                nameEl.textContent = `${callerName} is calling...`;
+            }
+            
+            if (modal) {
+                modal.classList.add('show');
+                console.log('✅ Incoming call modal shown');
+            } else {
+                console.error('❌ Modal element not found!');
+            }
             
             // Store offer
             window.pendingOffer = offer;
@@ -3459,10 +3492,15 @@
                 console.log('Video track enabled:', videoTrack.enabled);
                 
                 if (videoTrack.enabled) {
+                    // Ensure local video element has stream
+                    if (!localVideo.srcObject) {
+                        localVideo.srcObject = localStream;
+                        console.log('📹 Local video srcObject set');
+                    }
                     videoContainer.style.display = 'block';
                     audioView.style.display = 'none';
                     videoBtn.classList.add('active');
-                    console.log('✅ Video enabled');
+                    console.log('✅ Video enabled and displayed');
                 } else {
                     videoContainer.style.display = 'none';
                     audioView.style.display = 'flex';
