@@ -1675,6 +1675,8 @@
                 });
                 
                 const users = await response.json();
+                console.log('[Admin User List] Loaded users:', users);
+                
                 const userListDiv = document.getElementById('user-list');
                 
                 if (users.length === 0) {
@@ -1701,6 +1703,7 @@
                     const isOnline = user.status === 'online';
                     const statusDotColor = isOnline ? '#4caf50' : '#999';
                     const statusText = isOnline ? 'Online' : 'Offline';
+                    console.log(`[Status] ${user.username}: status=${user.status}, isOnline=${isOnline}, color=${statusDotColor}`);
                     
                     userDiv.innerHTML = `
                         <div style="position: relative;">
