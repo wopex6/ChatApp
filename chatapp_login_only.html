@@ -1748,20 +1748,28 @@
             if (!timestamp) return '';
             
             const date = parseTimestamp(timestamp);
-            if (!date) return '';
+            if (!date) {
+                console.warn('formatTimestamp: Could not parse timestamp:', timestamp);
+                return '';
+            }
             
-            const now = new Date();
-            const diff = now - date;
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            
-            if (days === 0) {
-                return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-            } else if (days === 1) {
-                return 'Yesterday';
-            } else if (days < 7) {
-                return `${days} days ago`;
-            } else {
-                return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            try {
+                const now = new Date();
+                const diff = now - date;
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                
+                if (days === 0) {
+                    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                } else if (days === 1) {
+                    return 'Yesterday';
+                } else if (days < 7) {
+                    return `${days} days ago`;
+                } else {
+                    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                }
+            } catch (error) {
+                console.error('formatTimestamp error:', error, timestamp);
+                return '';
             }
         }
 
@@ -3233,15 +3241,16 @@
                 const signals = await response.json();
                 
                 if (signals && signals.length > 0) {
-                    console.log(`📡 Received ${signals.length} signal(s)`);
+                    console.log(`📡 Received ${signals.length} signal(s) - Current call state:`, currentCallState);
+                    signals.forEach(s => console.log('  - Signal type:', s.signal.type, 'from user:', s.from));
                 }
                 
                 for (const signalData of signals) {
-                    console.log('Processing signal from user:', signalData.from);
+                    console.log('⚙️ Processing signal from user:', signalData.from, 'Type:', signalData.signal.type);
                     await handleSignal(signalData.signal, signalData.from);
                 }
             } catch (error) {
-                console.error('Signal polling error:', error);
+                console.error('❌ Signal polling error:', error);
                 // Continue polling even if there's an error
             }
         }
@@ -3251,32 +3260,42 @@
             
             // Handle incoming call (offer)
             if (signal.type === 'offer') {
+                console.log('🎯 Offer received - Current call state:', currentCallState, 'Has peer:', !!peerConnection);
+                
                 // Check if this is a renegotiation (already in call)
                 if (currentCallState === 'connected' && peerConnection) {
-                    console.log('🔄 Renegotiation offer received (adding video)');
+                    console.log('🔄 RENEGOTIATION DETECTED - Processing video offer');
+                    console.log('📝 Call ID:', currentCallId, 'From user:', fromUserId);
                     
-                    // Accept the new offer
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription({
-                        type: 'offer',
-                        sdp: signal.sdp
-                    }));
-                    
-                    // Create answer
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-                    
-                    // Send answer back
-                    await sendSignal(fromUserId, {
-                        type: 'answer',
-                        sdp: answer.sdp,
-                        call_id: currentCallId
-                    });
-                    
-                    console.log('✅ Renegotiation answer sent');
+                    try {
+                        // Accept the new offer
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription({
+                            type: 'offer',
+                            sdp: signal.sdp
+                        }));
+                        console.log('✅ Remote description set');
+                        
+                        // Create answer
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        console.log('✅ Local description set');
+                        
+                        // Send answer back
+                        await sendSignal(fromUserId, {
+                            type: 'answer',
+                            sdp: answer.sdp,
+                            call_id: currentCallId
+                        });
+                        
+                        console.log('✅ Renegotiation answer sent back to user:', fromUserId);
+                    } catch (error) {
+                        console.error('❌ Renegotiation failed:', error);
+                    }
                     return;
                 }
                 
                 // Otherwise, it's a new incoming call
+                console.log('📞 New incoming call');
                 await handleIncomingCall(signal, fromUserId);
                 return;
             }
@@ -3605,13 +3624,21 @@
                             
                             // Send new offer to peer
                             const targetUserId = currentUser.role === 'administrator' ? window.pendingCallerId : adminId;
+                            console.log('🎯 Target user for renegotiation:', targetUserId, 'Role:', currentUser.role);
+                            console.log('📝 Call ID:', currentCallId);
+                            
                             if (targetUserId) {
-                                await sendSignal(targetUserId, {
+                                const signalData = {
                                     type: 'offer',
                                     sdp: offer.sdp,
                                     call_id: currentCallId
-                                });
-                                console.log('📤 Sent renegotiation offer with video');
+                                };
+                                console.log('📤 Sending renegotiation offer:', signalData);
+                                
+                                await sendSignal(targetUserId, signalData);
+                                console.log('✅ Renegotiation offer sent successfully');
+                            } else {
+                                console.error('❌ No target user ID for renegotiation!');
                             }
                         }
                     }
