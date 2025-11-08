@@ -917,6 +917,7 @@
             z-index: 2000;
             justify-content: center;
             align-items: center;
+            overflow-y: auto;
         }
         
         .call-modal.show {
@@ -929,7 +930,10 @@
             border-radius: 20px;
             text-align: center;
             min-width: 400px;
+            max-height: 95vh;
+            overflow-y: auto;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            margin: auto;
         }
         
         .call-avatar {
@@ -1025,7 +1029,8 @@
         /* Video Call Styles */
         .video-container {
             position: relative;
-            width: 640px;
+            width: 100%;
+            max-width: 640px;
             height: 480px;
             background: #000;
             border-radius: 10px;
@@ -1049,6 +1054,39 @@
             border: 2px solid white;
             object-fit: cover;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        /* Mobile responsive video */
+        @media (max-width: 768px) {
+            .call-modal-content {
+                min-width: auto;
+                width: 95vw;
+                max-width: 95vw;
+                padding: 20px;
+            }
+            
+            .video-container {
+                height: 300px;
+                max-width: 100%;
+            }
+            
+            .local-video {
+                width: 100px;
+                height: 75px;
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            .call-controls {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .call-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2em;
+            }
         }
         
         .missed-calls-badge {
@@ -3006,18 +3044,22 @@
                 console.log('📥 Received remote track:', event.track.kind);
                 remoteStream = event.streams[0];
                 
-                if (event.track.kind === 'audio') {
-                    const remoteAudio = document.getElementById('remote-audio');
-                    if (remoteAudio) {
-                        remoteAudio.srcObject = remoteStream;
-                    }
-                } else if (event.track.kind === 'video') {
+                // Always set audio element for sound
+                const remoteAudio = document.getElementById('remote-audio');
+                if (remoteAudio && remoteStream) {
+                    remoteAudio.srcObject = remoteStream;
+                    console.log('🔊 Audio stream set');
+                }
+                
+                // If video track, also set video element
+                if (event.track.kind === 'video') {
                     const remoteVideo = document.getElementById('remote-video');
                     if (remoteVideo) {
                         remoteVideo.srcObject = remoteStream;
                         // Show video container
                         document.getElementById('video-container').style.display = 'block';
                         document.getElementById('audio-view').style.display = 'none';
+                        console.log('📹 Video stream set');
                     }
                 }
             };
@@ -3082,18 +3124,22 @@
                 console.log('📥 Received remote track:', event.track.kind);
                 remoteStream = event.streams[0];
                 
-                if (event.track.kind === 'audio') {
-                    const remoteAudio = document.getElementById('remote-audio');
-                    if (remoteAudio) {
-                        remoteAudio.srcObject = remoteStream;
-                    }
-                } else if (event.track.kind === 'video') {
+                // Always set audio element for sound
+                const remoteAudio = document.getElementById('remote-audio');
+                if (remoteAudio && remoteStream) {
+                    remoteAudio.srcObject = remoteStream;
+                    console.log('🔊 Audio stream set');
+                }
+                
+                // If video track, also set video element
+                if (event.track.kind === 'video') {
                     const remoteVideo = document.getElementById('remote-video');
                     if (remoteVideo) {
                         remoteVideo.srcObject = remoteStream;
                         // Show video container
                         document.getElementById('video-container').style.display = 'block';
                         document.getElementById('audio-view').style.display = 'none';
+                        console.log('📹 Video stream set');
                     }
                 }
             };
@@ -3405,8 +3451,9 @@
                     const newStream = await navigator.mediaDevices.getUserMedia({ 
                         audio: true, 
                         video: {
-                            width: { ideal: 640 },
-                            height: { ideal: 480 }
+                            width: { ideal: 640, max: 1280 },
+                            height: { ideal: 480, max: 720 },
+                            facingMode: 'user'  // Front camera for mobile
                         } 
                     });
                     
