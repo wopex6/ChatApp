@@ -6,7 +6,7 @@ Supports: User authentication, messaging between Ken Tse and users, file attachm
 import os
 import bcrypt
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 
 # Import sqlite3 and Path unconditionally (needed for exception handling)
@@ -431,6 +431,23 @@ class ChatAppDatabase:
         
         users = []
         for row in cursor.fetchall():
+            # Determine actual online status based on last_seen timestamp
+            last_seen = row[9]
+            is_online = False
+            
+            if last_seen:
+                # Parse last_seen timestamp
+                if isinstance(last_seen, str):
+                    last_seen_dt = datetime.fromisoformat(last_seen.replace('Z', '+00:00'))
+                else:
+                    last_seen_dt = last_seen
+                
+                # Check if last seen within last 30 seconds
+                now = datetime.now(timezone.utc)
+                time_diff = (now - last_seen_dt.replace(tzinfo=timezone.utc)).total_seconds()
+                is_online = time_diff < 30
+                print(f"[Status Check] User {row[1]}: last_seen={last_seen}, time_diff={time_diff:.1f}s, is_online={is_online}")
+            
             users.append({
                 'id': row[0],
                 'username': row[1],
@@ -440,7 +457,7 @@ class ChatAppDatabase:
                 'message_count': row[5] or 0,
                 'last_message_time': row[6],
                 'unread_count': row[7] or 0,
-                'status': row[8] or 'offline',
+                'status': 'online' if is_online else 'offline',
                 'last_seen': row[9]
             })
         
