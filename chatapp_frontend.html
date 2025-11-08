@@ -1618,7 +1618,10 @@
                 // Get custom admin name for this user
                 const adminDisplayName = localStorage.getItem(`admin_name_for_user_${currentUser.id}`) || 'Ken';
                 document.getElementById('header-subtitle').textContent = `Chat with ${adminDisplayName}`;
+                document.getElementById('chat-title').textContent = `${adminDisplayName}`;
                 document.getElementById('admin-panel').style.display = 'none'; // Hide admin panel for regular users
+                document.getElementById('messages-container').style.display = 'block'; // Explicitly show messages for regular users
+                document.getElementById('reply-bar').style.display = 'none'; // Hide reply bar for regular users
                 document.getElementById('message-input-section').style.display = 'flex';
                 
                 // Show call button for regular users
