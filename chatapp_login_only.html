@@ -1013,6 +1013,71 @@
             background: #ff9800;
         }
         
+        .btn-video {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .btn-video.active {
+            background: #4caf50;
+        }
+        
+        /* Video Call Styles */
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            height: 480px;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 auto 20px;
+        }
+        
+        .remote-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .local-video {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 160px;
+            height: 120px;
+            border-radius: 10px;
+            border: 2px solid white;
+            object-fit: cover;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        /* Mobile responsive video */
+        @media (max-width: 768px) {
+            .video-container {
+                height: 300px;
+                max-width: 100%;
+            }
+            
+            .local-video {
+                width: 100px;
+                height: 75px;
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            .call-controls {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .call-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2em;
+            }
+        }
+        
         .missed-calls-badge {
             position: absolute;
             top: -5px;
@@ -1275,15 +1340,26 @@
     <!-- Active Call Modal -->
     <div id="active-call-modal" class="call-modal">
         <div class="call-modal-content">
-            <div class="call-avatar" style="animation: none;">
+            <!-- Video Container -->
+            <div id="video-container" class="video-container" style="display: none;">
+                <video id="remote-video" class="remote-video" autoplay playsinline></video>
+                <video id="local-video" class="local-video" autoplay playsinline muted></video>
+            </div>
+            
+            <!-- Audio/Avatar View -->
+            <div id="audio-view" class="call-avatar" style="animation: none;">
                 <span id="active-call-icon">📞</span>
             </div>
+            
             <div class="call-info">
                 <h3 id="active-call-name">In Call</h3>
                 <div class="call-status" id="active-call-status">Connected</div>
                 <div class="call-timer" id="call-timer">00:00</div>
             </div>
             <div class="call-controls">
+                <button class="call-btn btn-video" id="video-btn" onclick="toggleVideo()" title="Toggle Video">
+                    📹
+                </button>
                 <button class="call-btn btn-mute" id="mute-btn" onclick="toggleMute()" title="Mute">
                     🔇
                 </button>
@@ -2963,11 +3039,26 @@
             
             // Handle remote stream
             peerConnection.ontrack = (event) => {
-                console.log('📥 Received remote track');
+                console.log('📥 Received remote track:', event.track.kind);
                 remoteStream = event.streams[0];
+                
+                // Always set audio element for sound
                 const remoteAudio = document.getElementById('remote-audio');
-                if (remoteAudio) {
+                if (remoteAudio && remoteStream) {
                     remoteAudio.srcObject = remoteStream;
+                    console.log('🔊 Audio stream set');
+                }
+                
+                // If video track, also set video element
+                if (event.track.kind === 'video') {
+                    const remoteVideo = document.getElementById('remote-video');
+                    if (remoteVideo) {
+                        remoteVideo.srcObject = remoteStream;
+                        // Show video container
+                        document.getElementById('video-container').style.display = 'block';
+                        document.getElementById('audio-view').style.display = 'none';
+                        console.log('📹 Video stream set');
+                    }
                 }
             };
             
@@ -3035,11 +3126,26 @@
             
             // Handle remote stream
             peerConnection.ontrack = (event) => {
-                console.log('📥 Received remote track');
+                console.log('📥 Received remote track:', event.track.kind);
                 remoteStream = event.streams[0];
+                
+                // Always set audio element for sound
                 const remoteAudio = document.getElementById('remote-audio');
-                if (remoteAudio) {
+                if (remoteAudio && remoteStream) {
                     remoteAudio.srcObject = remoteStream;
+                    console.log('🔊 Audio stream set');
+                }
+                
+                // If video track, also set video element
+                if (event.track.kind === 'video') {
+                    const remoteVideo = document.getElementById('remote-video');
+                    if (remoteVideo) {
+                        remoteVideo.srcObject = remoteStream;
+                        // Show video container
+                        document.getElementById('video-container').style.display = 'block';
+                        document.getElementById('audio-view').style.display = 'none';
+                        console.log('📹 Video stream set');
+                    }
                 }
             };
             
@@ -3154,7 +3260,13 @@
         }
 
         function startSignalPolling() {
+            // Don't create duplicate intervals
+            if (signalPollInterval) {
+                console.log('📡 Signal polling already running');
+                return;
+            }
             signalPollInterval = setInterval(pollSignals, 1000);
+            console.log('📡 Signal polling started');
         }
 
         function stopSignalPolling() {
@@ -3325,6 +3437,88 @@
             }
         }
 
+        async function toggleVideo() {
+            console.log('📹 Toggle video clicked');
+            
+            if (!localStream) {
+                console.error('❌ No local stream');
+                return;
+            }
+            
+            const videoBtn = document.getElementById('video-btn');
+            const videoContainer = document.getElementById('video-container');
+            const audioView = document.getElementById('audio-view');
+            const localVideo = document.getElementById('local-video');
+            
+            const videoTrack = localStream.getVideoTracks()[0];
+            console.log('Current video track:', videoTrack);
+            
+            if (videoTrack) {
+                // Video exists, toggle it
+                videoTrack.enabled = !videoTrack.enabled;
+                console.log('Video track enabled:', videoTrack.enabled);
+                
+                if (videoTrack.enabled) {
+                    videoContainer.style.display = 'block';
+                    audioView.style.display = 'none';
+                    videoBtn.classList.add('active');
+                    console.log('✅ Video enabled');
+                } else {
+                    videoContainer.style.display = 'none';
+                    audioView.style.display = 'flex';
+                    videoBtn.classList.remove('active');
+                    console.log('Video disabled');
+                }
+            } else {
+                // No video track yet, request camera permission
+                console.log('🎥 Requesting camera permission...');
+                showSuccess('Click "Allow" to enable your camera');
+                
+                try {
+                    const newStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: true, 
+                        video: {
+                            width: { ideal: 640, max: 1280 },
+                            height: { ideal: 480, max: 720 },
+                            facingMode: 'user'
+                        } 
+                    });
+                    
+                    console.log('✅ Camera permission granted');
+                    
+                    // Replace old stream with new one including video
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = newStream;
+                    
+                    // Update local video element
+                    localVideo.srcObject = localStream;
+                    
+                    // Replace tracks in peer connection
+                    if (peerConnection) {
+                        const senders = peerConnection.getSenders();
+                        localStream.getTracks().forEach(track => {
+                            const sender = senders.find(s => s.track && s.track.kind === track.kind);
+                            if (sender) {
+                                sender.replaceTrack(track);
+                            } else {
+                                peerConnection.addTrack(track, localStream);
+                            }
+                        });
+                    }
+                    
+                    // Show video UI
+                    videoContainer.style.display = 'block';
+                    audioView.style.display = 'none';
+                    videoBtn.classList.add('active');
+                    
+                    console.log('✅ Video enabled and shared');
+                } catch (error) {
+                    console.error('Failed to get video:', error);
+                    showError('Camera access denied or not available');
+                }
+            }
+        }
+
         function cleanupCall() {
             if (callTimerInterval) {
                 clearInterval(callTimerInterval);
@@ -3337,7 +3531,8 @@
                 callTimeoutTimer = null;
             }
             
-            stopSignalPolling();
+            // DON'T stop signal polling - keep it running for incoming calls!
+            // stopSignalPolling();
             
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
@@ -3357,6 +3552,19 @@
             currentCallId = null;
             currentCallState = null;
             callStartTime = null;
+            
+            // Reset video UI
+            const videoContainer = document.getElementById('video-container');
+            const audioView = document.getElementById('audio-view');
+            const videoBtn = document.getElementById('video-btn');
+            const localVideo = document.getElementById('local-video');
+            const remoteVideo = document.getElementById('remote-video');
+            
+            if (videoContainer) videoContainer.style.display = 'none';
+            if (audioView) audioView.style.display = 'flex';
+            if (videoBtn) videoBtn.classList.remove('active');
+            if (localVideo) localVideo.srcObject = null;
+            if (remoteVideo) remoteVideo.srcObject = null;
             
             updateMyStatus('online');
         }
