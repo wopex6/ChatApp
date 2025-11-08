@@ -442,10 +442,10 @@ class ChatAppDatabase:
                 else:
                     last_seen_dt = last_seen
                 
-                # Check if last seen within last 30 seconds
+                # Check if last seen within last 5 seconds (faster offline detection)
                 now = datetime.now(timezone.utc)
                 time_diff = (now - last_seen_dt.replace(tzinfo=timezone.utc)).total_seconds()
-                is_online = time_diff < 30
+                is_online = time_diff < 5
                 print(f"[Status Check] User {row[1]}: last_seen={last_seen}, time_diff={time_diff:.1f}s, is_online={is_online}")
             
             users.append({
