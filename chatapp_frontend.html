@@ -3109,6 +3109,13 @@
                     }
                     
                     if (!callTimerInterval) startCallTimer();
+                    
+                    // Remind user about video option
+                    setTimeout(() => {
+                        if (currentCallState === 'connected' && !localStream.getVideoTracks()[0]) {
+                            showSuccess('💡 Tip: Click 📹 to enable video!');
+                        }
+                    }, 3000);
                 } else if (peerConnection.connectionState === 'disconnected' || 
                            peerConnection.connectionState === 'failed') {
                     console.log('❌ Call disconnected');
@@ -3224,11 +3231,17 @@
                 
                 const signals = await response.json();
                 
+                if (signals && signals.length > 0) {
+                    console.log(`📡 Received ${signals.length} signal(s)`);
+                }
+                
                 for (const signalData of signals) {
+                    console.log('Processing signal from user:', signalData.from);
                     await handleSignal(signalData.signal, signalData.from);
                 }
             } catch (error) {
-                // Silently fail - user might not be logged in
+                console.error('Signal polling error:', error);
+                // Continue polling even if there's an error
             }
         }
 
@@ -3291,16 +3304,36 @@
         
         async function handleIncomingCall(offer, callerUserId) {
             console.log('📞 Incoming call from user:', callerUserId);
+            console.log('Current user role:', currentUser?.role);
+            console.log('Offer details:', offer);
             
             currentCallId = offer.call_id;
             currentCallState = 'ringing';
             
             // Get caller name
             let callerName = 'User';
+            if (currentUser?.role === 'administrator') {
+                // Admin receiving call - get user's name if possible
+                callerName = `User ${callerUserId}`;
+            }
             
             // Show incoming call modal
-            document.getElementById('incoming-caller-name').textContent = `${callerName} is calling...`;
-            document.getElementById('incoming-call-modal').classList.add('show');
+            const modal = document.getElementById('incoming-call-modal');
+            const nameEl = document.getElementById('incoming-caller-name');
+            
+            console.log('Modal element:', modal);
+            console.log('Name element:', nameEl);
+            
+            if (nameEl) {
+                nameEl.textContent = `${callerName} is calling...`;
+            }
+            
+            if (modal) {
+                modal.classList.add('show');
+                console.log('✅ Incoming call modal shown');
+            } else {
+                console.error('❌ Modal element not found!');
+            }
             
             // Store offer
             window.pendingOffer = offer;
@@ -3449,7 +3482,12 @@
         }
 
         async function toggleVideo() {
-            if (!localStream) return;
+            console.log('📹 Toggle video clicked');
+            
+            if (!localStream) {
+                console.error('❌ No local stream');
+                return;
+            }
             
             const videoBtn = document.getElementById('video-btn');
             const videoContainer = document.getElementById('video-container');
@@ -3457,24 +3495,31 @@
             const localVideo = document.getElementById('local-video');
             
             const videoTrack = localStream.getVideoTracks()[0];
+            console.log('Current video track:', videoTrack);
             
             if (videoTrack) {
                 // Video is currently on, turn it off
                 videoTrack.enabled = !videoTrack.enabled;
+                console.log('Video track enabled:', videoTrack.enabled);
                 
                 if (videoTrack.enabled) {
                     videoContainer.style.display = 'block';
                     audioView.style.display = 'none';
                     videoBtn.textContent = '📹';
                     videoBtn.classList.add('active');
+                    console.log('✅ Video enabled');
                 } else {
                     videoContainer.style.display = 'none';
                     audioView.style.display = 'flex';
                     videoBtn.textContent = '📹';
                     videoBtn.classList.remove('active');
+                    console.log('Video disabled');
                 }
             } else {
                 // No video track yet, request video permission
+                console.log('🎥 Requesting camera permission...');
+                showSuccess('Click "Allow" to enable your camera');
+                
                 try {
                     const newStream = await navigator.mediaDevices.getUserMedia({ 
                         audio: true, 
@@ -3484,6 +3529,8 @@
                             facingMode: 'user'  // Front camera for mobile
                         } 
                     });
+                    
+                    console.log('✅ Camera permission granted');
                     
                     // Replace old stream with new one including video
                     localStream.getTracks().forEach(track => track.stop());
