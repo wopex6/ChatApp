@@ -1701,7 +1701,7 @@
                     
                     // Online status indicator
                     const isOnline = user.status === 'online';
-                    const statusDotColor = isOnline ? '#4caf50' : '#999';
+                    const statusDotColor = isOnline ? '#ffc107' : '#dc3545'; // Yellow for online, Red for offline
                     const statusText = isOnline ? 'Online' : 'Offline';
                     console.log(`[Status] ${user.username}: status=${user.status}, isOnline=${isOnline}, color=${statusDotColor}`);
                     
