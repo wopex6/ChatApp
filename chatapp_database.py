@@ -415,8 +415,11 @@ class ChatAppDatabase:
             SELECT u.id, u.username, u.email, u.user_role, u.is_deleted,
                    (SELECT COUNT(*) FROM admin_messages WHERE user_id = u.id) as message_count,
                    (SELECT MAX(timestamp) FROM admin_messages WHERE user_id = u.id) as last_message_time,
-                   (SELECT COUNT(*) FROM admin_messages WHERE user_id = u.id AND sender_type = 'user' AND is_read = 0) as unread_count
+                   (SELECT COUNT(*) FROM admin_messages WHERE user_id = u.id AND sender_type = 'user' AND is_read = 0) as unread_count,
+                   us.status,
+                   us.last_seen
             FROM users u
+            LEFT JOIN user_status us ON u.id = us.user_id
             WHERE {where_clause}
             ORDER BY 
                 u.is_deleted ASC,
@@ -436,7 +439,9 @@ class ChatAppDatabase:
                 'is_deleted': row[4],
                 'message_count': row[5] or 0,
                 'last_message_time': row[6],
-                'unread_count': row[7] or 0
+                'unread_count': row[7] or 0,
+                'status': row[8] or 'offline',
+                'last_seen': row[9]
             })
         
         conn.close()

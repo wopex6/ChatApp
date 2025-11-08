@@ -1697,13 +1697,23 @@
                         formatTimestamp(user.last_message_time) : 
                         '<span style="color: #999; font-size: 11px;">New user</span>';
                     
+                    // Online status indicator
+                    const isOnline = user.status === 'online';
+                    const statusDotColor = isOnline ? '#4caf50' : '#999';
+                    const statusText = isOnline ? 'Online' : 'Offline';
+                    
                     userDiv.innerHTML = `
-                        <div class="user-info">
-                            <div class="user-name">${user.username}</div>
-                            <div class="last-message-time">${timeDisplay}</div>
+                        <div style="position: relative;">
+                            <div class="user-info">
+                                <div class="user-name">
+                                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${statusDotColor}; margin-right: 6px; box-shadow: 0 0 4px ${statusDotColor};"></span>
+                                    ${user.username}
+                                </div>
+                                <div class="last-message-time">${timeDisplay}</div>
+                            </div>
+                            ${unreadBadge}
+                            <button class="call-button" onclick="event.stopPropagation(); callUser(${user.id}, '${user.username.replace(/'/g, "\\'")}')">📞</button>
                         </div>
-                        ${unreadBadge}
-                        <button class="call-button" onclick="event.stopPropagation(); callUser(${user.id}, '${user.username.replace(/'/g, "\\'")}')">📞</button>
                     `;
                     userListDiv.appendChild(userDiv);
                 });
