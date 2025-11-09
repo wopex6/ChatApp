@@ -1508,6 +1508,7 @@
         let callTimerInterval = null;
         let signalPollInterval = null;
         let callTimeoutTimer = null;  // For call timeout handling
+        let remoteUserId = null; // Track who we're in a call with for hangup signaling
         let adminId = null;  // Will be set on login
 
         // Emoji list
@@ -2701,7 +2702,11 @@
                 
                 const handleTouch = (e) => {
                     // Mobile: Use touch event with better detection
-                    touchHandled = true; // Mark that touch was handled
+                    // CRITICAL: Prevent default to stop click from firing
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    touchHandled = true;  // Mark that touch was handled
                     
                     const currentTime = new Date().getTime();
                     const tapGap = currentTime - lastTapTime;
@@ -2710,8 +2715,6 @@
                     
                     if (tapGap < doubleTapDelay && tapGap > 0) {
                         // Double tap detected
-                        e.preventDefault();
-                        e.stopPropagation();
                         clearTimeout(tapTimeout);
                         debugLog('VIDEO', 'Double-tap detected - fullscreen');
                         toggleFullscreen(videoElement);
@@ -2722,11 +2725,9 @@
                         tapTimeout = setTimeout(() => {
                             debugLog('VIDEO', 'Single tap confirmed - swap videos');
                             swapVideos();
+                            touchHandled = false;  // Reset immediately after action
                         }, doubleTapDelay);
                     }
-                    
-                    // Reset flag after 500ms to allow next interaction
-                    setTimeout(() => { touchHandled = false; }, 500);
                 };
                 
                 const handleClick = (e) => {
@@ -3209,8 +3210,10 @@
                 // Call initiated successfully
                 currentCallId = data.call_id;
                 currentCallState = 'calling';
+                remoteUserId = userId; // Track who we're calling
                 debugLog('CALL-INIT', `✅ Call initiated! Call ID: ${currentCallId}`);
                 debugLog('CALL-INIT', `State: ${currentCallState}`);
+                debugLog('CALL-INIT', `remoteUserId set to: ${remoteUserId}`);
                 
                 // Show calling UI
                 debugLog('CALL-INIT', 'Showing calling UI...');
@@ -3338,6 +3341,8 @@
                 // Call initiated successfully
                 currentCallId = data.call_id;
                 currentCallState = 'calling';
+                remoteUserId = adminId; // Track who we're calling
+                debugLog('CALL-INIT', `remoteUserId set to: ${remoteUserId}`);
                 
                 // Show calling UI
                 showCallingUI();
@@ -3747,6 +3752,17 @@
                 
             } else if (signal.type === 'ice') {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+            } else if (signal.type === 'hangup') {
+                debugLog('CALL-SIGNAL', `❌ Received hangup signal from user: ${fromUserId}`);
+                debugLog('CALL-SIGNAL', `Current call state: ${currentCallState}`);
+                
+                // Other party hung up - end call on this side
+                if (currentCallState === 'calling' || currentCallState === 'ringing' || currentCallState === 'connecting' || currentCallState === 'connected') {
+                    debugLog('CALL-SIGNAL', 'Ending call due to remote hangup');
+                    hangupCall('Other party ended call');
+                } else {
+                    debugLog('CALL-SIGNAL', `Ignoring hangup - not in active call (state: ${currentCallState})`);
+                }
             }
         }
 
@@ -4026,6 +4042,8 @@
                 debugLog('CALL-ANSWER', `Audio tracks: ${localStream.getAudioTracks().length}`);
                 
                 // Set up peer connection - unified for all scenarios
+                remoteUserId = window.pendingCallerId; // Track who called us
+                debugLog('CALL-ANSWER', `remoteUserId set to: ${remoteUserId}`);
                 debugLog('CALL-ANSWER', `Setting up peer connection with ${window.pendingCallerId}...`);
                 await setupPeerConnection(window.pendingCallerId);
                 
@@ -4136,10 +4154,31 @@
         // ========== Call Controls ==========
         
         window.hangupCall = async function(reason = 'Call ended') {
-            console.log('📴 Hanging up call:', reason);
+            debugLog('CALL-HANGUP', '📴 ========== HANGING UP CALL ==========');
+            debugLog('CALL-HANGUP', `Reason: ${reason}`);
+            debugLog('CALL-HANGUP', `Call state: ${currentCallState}`);
+            debugLog('CALL-HANGUP', `Remote user: ${remoteUserId}`);
             
             const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
             
+            // Send hangup signal to other party (BEFORE cleanup)
+            if (remoteUserId && currentCallId && reason !== 'Other party ended call') {
+                debugLog('CALL-HANGUP', `Sending hangup signal to user: ${remoteUserId}`);
+                try {
+                    await sendSignal(remoteUserId, {
+                        type: 'hangup',
+                        call_id: currentCallId,
+                        reason: reason
+                    });
+                    debugLog('CALL-HANGUP', '✅ Hangup signal sent');
+                } catch (error) {
+                    debugLog('CALL-HANGUP', '❌ Failed to send hangup signal:', error);
+                }
+            } else {
+                debugLog('CALL-HANGUP', `No hangup signal sent (remoteUserId: ${remoteUserId}, reason: ${reason})`);
+            }
+            
+            // Notify backend
             if (currentCallId) {
                 await fetch(`${API_URL}/call/hangup`, {
                     method: 'POST',
@@ -4152,6 +4191,7 @@
                         duration: duration
                     })
                 });
+                debugLog('CALL-HANGUP', 'Backend notified');
             }
             
             // Hide both modals properly (clear classes AND inline styles)
@@ -4426,6 +4466,7 @@
             // Clear pending call data for fresh state
             window.pendingOffer = null;
             window.pendingCallerId = null;
+            remoteUserId = null; // Clear remote user tracking
             debugLog('CLEANUP', 'Pending call data cleared');
             
             currentCallId = null;
