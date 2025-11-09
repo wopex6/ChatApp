@@ -2694,29 +2694,61 @@
             function setupVideoHandlers(videoElement) {
                 if (!videoElement) return;
                 
-                // Handle both click (desktop) and touchend (mobile)
-                const handleInteraction = (e) => {
+                debugLog('VIDEO', `Setting up video handlers for: ${videoElement.id}`);
+                
+                // Separate handlers for desktop and mobile for better control
+                const handleClick = (e) => {
+                    // Desktop: Use click event
                     const currentTime = new Date().getTime();
                     const tapGap = currentTime - lastTapTime;
                     
                     if (tapGap < doubleTapDelay && tapGap > 0) {
-                        // Double tap/click detected
-                        e.preventDefault(); // Only prevent on double-tap
+                        // Double click detected
+                        e.preventDefault();
                         clearTimeout(tapTimeout);
+                        debugLog('VIDEO', 'Double-click detected - fullscreen');
                         toggleFullscreen(videoElement);
-                        lastTapTime = 0; // Reset
+                        lastTapTime = 0;
                     } else {
-                        // Possible single tap/click - wait to confirm
+                        // Single click - wait to confirm
                         lastTapTime = currentTime;
                         tapTimeout = setTimeout(() => {
-                            // Single tap/click confirmed
+                            debugLog('VIDEO', 'Single click confirmed - swap videos');
                             swapVideos();
                         }, doubleTapDelay);
                     }
                 };
                 
-                videoElement.addEventListener('click', handleInteraction);
-                videoElement.addEventListener('touchend', handleInteraction, { passive: false });
+                const handleTouch = (e) => {
+                    // Mobile: Use touch event with better detection
+                    const currentTime = new Date().getTime();
+                    const tapGap = currentTime - lastTapTime;
+                    
+                    debugLog('VIDEO', `Touch on ${videoElement.id}, gap: ${tapGap}ms`);
+                    
+                    if (tapGap < doubleTapDelay && tapGap > 0) {
+                        // Double tap detected
+                        e.preventDefault();
+                        e.stopPropagation();
+                        clearTimeout(tapTimeout);
+                        debugLog('VIDEO', 'Double-tap detected - fullscreen');
+                        toggleFullscreen(videoElement);
+                        lastTapTime = 0;
+                    } else {
+                        // Single tap - wait to confirm
+                        lastTapTime = currentTime;
+                        tapTimeout = setTimeout(() => {
+                            debugLog('VIDEO', 'Single tap confirmed - swap videos');
+                            swapVideos();
+                        }, doubleTapDelay);
+                    }
+                };
+                
+                // Use click for desktop (mouse)
+                videoElement.addEventListener('click', handleClick);
+                
+                // Use touchstart for mobile (more reliable than touchend)
+                videoElement.addEventListener('touchstart', handleTouch, { passive: false });
             }
             
             setupVideoHandlers(localVideo);
@@ -3724,12 +3756,18 @@
             debugLog('CALL-RECEIVE', `From user: ${callerUserId} (type: ${typeof callerUserId})`);
             debugLog('CALL-RECEIVE', `Current user: ${currentUser?.id} (${currentUser?.username}) Role: ${currentUser?.role}`);
             debugLog('CALL-RECEIVE', `Call ID: ${offer.call_id}`);
-            debugLog('CALL-RECEIVE', `Current state: ${currentCallState}`);
+            debugLog('CALL-RECEIVE', `Current state BEFORE: ${currentCallState}`);
             debugLog('CALL-RECEIVE', `Screen: ${window.innerWidth}x${window.innerHeight}`);
+            
+            // If already in a call, reject this incoming call
+            if (currentCallState === 'connected' || currentCallState === 'calling') {
+                debugLog('CALL-RECEIVE', `⚠️ Already in a call (state: ${currentCallState}), rejecting incoming call`);
+                return;
+            }
             
             currentCallId = offer.call_id;
             currentCallState = 'ringing';
-            debugLog('CALL-RECEIVE', 'State changed to: ringing');
+            debugLog('CALL-RECEIVE', `State changed to: ringing (Call ID: ${currentCallId})`);
             
             // Get caller name
             let callerName = 'User';
@@ -3737,17 +3775,18 @@
                 callerName = `User ${callerUserId}`;
             }
             
-            console.log('🏷️ Caller name:', callerName);
+            debugLog('CALL-RECEIVE', `Caller name: ${callerName}`);
             
             // Store offer for answer
             window.pendingOffer = offer;
             window.pendingCallerId = callerUserId;
-            console.log('💾 Stored: pendingCallerId =', window.pendingCallerId, 'Type:', typeof window.pendingCallerId);
+            debugLog('CALL-RECEIVE', `Stored pendingCallerId: ${window.pendingCallerId} (type: ${typeof window.pendingCallerId})`);
             
             // Show incoming call with robust retry system
+            debugLog('CALL-RECEIVE', 'Calling showIncomingCallModal...');
             showIncomingCallModal(callerName);
             
-            console.log('📞 =================================');
+            debugLog('CALL-RECEIVE', '========================================');
         }
         
         /**
@@ -3764,6 +3803,16 @@
             const nameEl = document.getElementById('incoming-caller-name');
             
             debugLog('MODAL', `Modal element: ${!!modal}, Name element: ${!!nameEl}`);
+            
+            // Reset modal state first (in case it's still set from previous call)
+            if (modal && attempt === 1) {
+                debugLog('MODAL', 'Resetting modal state from previous call...');
+                modal.classList.remove('show');
+                modal.style.display = '';
+                modal.style.zIndex = '';
+                modal.style.visibility = '';
+                debugLog('MODAL', 'Modal reset complete');
+            }
             
             // Check if elements exist
             if (!modal || !nameEl) {
@@ -4312,15 +4361,19 @@
         }
 
         function cleanupCall() {
+            debugLog('CLEANUP', '========== CLEANING UP CALL ==========');
+            
             if (callTimerInterval) {
                 clearInterval(callTimerInterval);
                 callTimerInterval = null;
+                debugLog('CLEANUP', 'Call timer cleared');
             }
             
             // Clear call timeout if still active
             if (callTimeoutTimer) {
                 clearTimeout(callTimeoutTimer);
                 callTimeoutTimer = null;
+                debugLog('CLEANUP', 'Call timeout cleared');
             }
             
             // DON'T stop signal polling - keep it running for incoming calls!
@@ -4329,21 +4382,30 @@
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
+                debugLog('CLEANUP', 'Local stream stopped');
             }
             
             if (remoteStream) {
                 remoteStream.getTracks().forEach(track => track.stop());
                 remoteStream = null;
+                debugLog('CLEANUP', 'Remote stream stopped');
             }
             
             if (peerConnection) {
                 peerConnection.close();
                 peerConnection = null;
+                debugLog('CLEANUP', 'Peer connection closed');
             }
+            
+            // Clear pending call data for fresh state
+            window.pendingOffer = null;
+            window.pendingCallerId = null;
+            debugLog('CLEANUP', 'Pending call data cleared');
             
             currentCallId = null;
             currentCallState = null;
             callStartTime = null;
+            debugLog('CLEANUP', 'Call state reset');
             
             // Reset video UI
             const videoContainer = document.getElementById('video-container');
