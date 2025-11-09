@@ -2634,13 +2634,12 @@
                 
                 // Handle both click (desktop) and touchend (mobile)
                 const handleInteraction = (e) => {
-                    e.preventDefault();
-                    
                     const currentTime = new Date().getTime();
                     const tapGap = currentTime - lastTapTime;
                     
                     if (tapGap < doubleTapDelay && tapGap > 0) {
                         // Double tap/click detected
+                        e.preventDefault(); // Only prevent on double-tap
                         clearTimeout(tapTimeout);
                         toggleFullscreen(videoElement);
                         lastTapTime = 0; // Reset
@@ -2655,7 +2654,7 @@
                 };
                 
                 videoElement.addEventListener('click', handleInteraction);
-                videoElement.addEventListener('touchend', handleInteraction);
+                videoElement.addEventListener('touchend', handleInteraction, { passive: false });
             }
             
             setupVideoHandlers(localVideo);
@@ -3510,7 +3509,7 @@
                 console.log('📥 RECEIVED ANSWER from user:', fromUserId, 'Type:', typeof fromUserId);
                 console.log('🔗 Peer connection exists:', !!peerConnection, 'State:', peerConnection?.connectionState);
                 console.log('📊 Current call state:', currentCallState);
-                console.log('📝 Call ID:', currentCallId);
+                console.log('📋 Call ID:', currentCallId);
                 
                 await peerConnection.setRemoteDescription(new RTCSessionDescription({
                     type: 'answer',
@@ -3526,20 +3525,66 @@
                     console.log('⏰ Call timeout cleared - answer received');
                 }
                 
+                // Strong UI feedback that call was answered
                 const statusEl = document.getElementById('active-call-status');
-                if (statusEl) statusEl.textContent = 'Connecting...';
+                if (statusEl) {
+                    statusEl.textContent = '✅ Call Answered - Connecting...';
+                    statusEl.style.color = '#4caf50'; // Green color
+                    
+                    // Reset color after 2 seconds
+                    setTimeout(() => {
+                        if (statusEl.textContent.includes('Answered')) {
+                            statusEl.style.color = '';
+                            statusEl.textContent = 'Connecting...';
+                        }
+                    }, 2000);
+                }
                 
-                // Ensure call modal stays visible (for admin calling users)
+                // Play a short beep to notify user (mobile-friendly)
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 800; // Hz
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    
+                    console.log('🔔 Answer notification beep played');
+                } catch (error) {
+                    console.log('⚠️ Could not play notification sound:', error);
+                }
+                
+                // Ensure call modal is visible and bring to front (critical for mobile)
                 const activeModal = document.getElementById('active-call-modal');
-                if (activeModal && !activeModal.classList.contains('show')) {
+                if (activeModal) {
                     activeModal.classList.add('show');
+                    activeModal.style.zIndex = '10000'; // Ensure it's on top
+                    console.log('📱 Call modal ensured visible for answer notification');
+                }
+                
+                // Vibrate on mobile if supported
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200]); // Vibrate pattern
+                    console.log('📳 Vibration triggered');
                 }
                 
                 // Check if already connected (sometimes state changes before we receive answer)
                 if (peerConnection.connectionState === 'connected') {
                     console.log('✅ Already connected, starting timer');
                     currentCallState = 'connected';
-                    if (statusEl) statusEl.textContent = 'Connected';
+                    if (statusEl) {
+                        statusEl.textContent = 'Connected';
+                        statusEl.style.color = '';
+                    }
                     if (!callTimerInterval) startCallTimer();
                 }
                 
@@ -3907,16 +3952,33 @@
         function toggleFullscreen(videoElement) {
             console.log('🖥️ Toggle fullscreen');
             
-            if (!document.fullscreenElement) {
+            // Check both standard and webkit fullscreen
+            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+            
+            if (!isFullscreen) {
                 // Enter fullscreen
+                console.log('📱 Attempting fullscreen...');
+                
+                // Try different fullscreen methods
                 if (videoElement.requestFullscreen) {
-                    videoElement.requestFullscreen();
-                } else if (videoElement.webkitRequestFullscreen) { // Safari
+                    videoElement.requestFullscreen().catch(err => {
+                        console.error('Fullscreen error:', err);
+                        // Fallback: Try webkit
+                        if (videoElement.webkitRequestFullscreen) {
+                            videoElement.webkitRequestFullscreen();
+                        }
+                    });
+                } else if (videoElement.webkitRequestFullscreen) { // iOS Safari
                     videoElement.webkitRequestFullscreen();
+                } else if (videoElement.webkitEnterFullscreen) { // iOS video element specific
+                    videoElement.webkitEnterFullscreen();
                 } else if (videoElement.mozRequestFullScreen) { // Firefox
                     videoElement.mozRequestFullScreen();
                 } else if (videoElement.msRequestFullscreen) { // IE/Edge
                     videoElement.msRequestFullscreen();
+                } else {
+                    console.warn('⚠️ Fullscreen not supported on this device');
+                    showError('Fullscreen not supported on this device');
                 }
                 console.log('✅ Entered fullscreen');
             } else {
