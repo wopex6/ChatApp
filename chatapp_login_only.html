@@ -1428,8 +1428,8 @@
         <div class="call-modal-content">
             <!-- Video Container -->
             <div id="video-container" class="video-container" style="display: none;">
-                <video id="remote-video" class="remote-video" autoplay playsinline onclick="swapVideos()" style="cursor: pointer;" title="Tap to swap"></video>
-                <video id="local-video" class="local-video" autoplay playsinline muted onclick="swapVideos()" style="cursor: pointer;" title="Tap to swap"></video>
+                <video id="remote-video" class="remote-video" autoplay playsinline style="cursor: pointer;" title="Single tap: swap | Double tap: fullscreen"></video>
+                <video id="local-video" class="local-video" autoplay playsinline muted style="cursor: pointer;" title="Single tap: swap | Double tap: fullscreen"></video>
             </div>
             
             <!-- Audio/Avatar View -->
@@ -2592,6 +2592,48 @@
         let startWidth = 0;
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Setup video tap/click handlers
+            const localVideo = document.getElementById('local-video');
+            const remoteVideo = document.getElementById('remote-video');
+            
+            // Track tap timing for distinguishing single vs double tap
+            let lastTapTime = 0;
+            let tapTimeout = null;
+            const doubleTapDelay = 300; // milliseconds
+            
+            function setupVideoHandlers(videoElement) {
+                if (!videoElement) return;
+                
+                // Handle both click (desktop) and touchend (mobile)
+                const handleInteraction = (e) => {
+                    e.preventDefault();
+                    
+                    const currentTime = new Date().getTime();
+                    const tapGap = currentTime - lastTapTime;
+                    
+                    if (tapGap < doubleTapDelay && tapGap > 0) {
+                        // Double tap/click detected
+                        clearTimeout(tapTimeout);
+                        toggleFullscreen(videoElement);
+                        lastTapTime = 0; // Reset
+                    } else {
+                        // Possible single tap/click - wait to confirm
+                        lastTapTime = currentTime;
+                        tapTimeout = setTimeout(() => {
+                            // Single tap/click confirmed
+                            swapVideos();
+                        }, doubleTapDelay);
+                    }
+                };
+                
+                videoElement.addEventListener('click', handleInteraction);
+                videoElement.addEventListener('touchend', handleInteraction);
+            }
+            
+            setupVideoHandlers(localVideo);
+            setupVideoHandlers(remoteVideo);
+            
+            // Setup resize handle
             const resizeHandle = document.getElementById('resize-handle');
             const adminPanel = document.getElementById('admin-panel');
             
@@ -3191,10 +3233,14 @@
                     const remoteVideo = document.getElementById('remote-video');
                     if (remoteVideo) {
                         remoteVideo.srcObject = remoteStream;
+                        
+                        // Force play the video element (important for some browsers)
+                        remoteVideo.play().catch(e => console.log('Video autoplay:', e));
+                        
                         // Show video container
                         document.getElementById('video-container').style.display = 'block';
                         document.getElementById('audio-view').style.display = 'none';
-                        console.log('📹 Video stream set');
+                        console.log('📹 Video stream set and playing');
                     }
                 }
             };
@@ -3278,10 +3324,14 @@
                     const remoteVideo = document.getElementById('remote-video');
                     if (remoteVideo) {
                         remoteVideo.srcObject = remoteStream;
+                        
+                        // Force play the video element (important for some browsers)
+                        remoteVideo.play().catch(e => console.log('Video autoplay:', e));
+                        
                         // Show video container
                         document.getElementById('video-container').style.display = 'block';
                         document.getElementById('audio-view').style.display = 'none';
-                        console.log('📹 Video stream set');
+                        console.log('📹 Video stream set and playing');
                     }
                 }
             };
@@ -3780,6 +3830,37 @@
             remoteVideo.muted = false; // Never mute remote person
             
             console.log('✅ Video windows swapped - Local is now:', localVideo.className);
+        }
+        
+        // Toggle fullscreen on video element
+        function toggleFullscreen(videoElement) {
+            console.log('🖥️ Toggle fullscreen');
+            
+            if (!document.fullscreenElement) {
+                // Enter fullscreen
+                if (videoElement.requestFullscreen) {
+                    videoElement.requestFullscreen();
+                } else if (videoElement.webkitRequestFullscreen) { // Safari
+                    videoElement.webkitRequestFullscreen();
+                } else if (videoElement.mozRequestFullScreen) { // Firefox
+                    videoElement.mozRequestFullScreen();
+                } else if (videoElement.msRequestFullscreen) { // IE/Edge
+                    videoElement.msRequestFullscreen();
+                }
+                console.log('✅ Entered fullscreen');
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { // Safari
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) { // Firefox
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) { // IE/Edge
+                    document.msExitFullscreen();
+                }
+                console.log('✅ Exited fullscreen');
+            }
         }
 
         function cleanupCall() {
