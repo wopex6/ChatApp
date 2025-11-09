@@ -3419,18 +3419,27 @@
         }
 
         async function pollSignals() {
-            if (!token) return; // Not logged in
+            if (!token) {
+                console.warn('⚠️ No token - signal polling skipped');
+                return; // Not logged in
+            }
             
             try {
                 const response = await fetch(`${API_URL}/call/signals`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
+                if (!response.ok) {
+                    console.error('❌ Signal polling failed:', response.status, response.statusText);
+                    return;
+                }
+                
                 const signals = await response.json();
                 
                 if (signals && signals.length > 0) {
                     console.log(`📡 Received ${signals.length} signal(s) - Current call state:`, currentCallState);
-                    signals.forEach(s => console.log('  - Signal type:', s.signal.type, 'from user:', s.from));
+                    console.log('👤 Current user ID:', currentUser?.id, 'Username:', currentUser?.username);
+                    signals.forEach(s => console.log('  - Signal type:', s.signal.type, 'from user:', s.from, 'Type:', typeof s.from));
                 }
                 
                 for (const signalData of signals) {
@@ -3498,11 +3507,16 @@
             }
             
             if (signal.type === 'answer') {
+                console.log('📥 RECEIVED ANSWER from user:', fromUserId, 'Type:', typeof fromUserId);
+                console.log('🔗 Peer connection exists:', !!peerConnection, 'State:', peerConnection?.connectionState);
+                console.log('📊 Current call state:', currentCallState);
+                console.log('📝 Call ID:', currentCallId);
+                
                 await peerConnection.setRemoteDescription(new RTCSessionDescription({
                     type: 'answer',
                     sdp: signal.sdp
                 }));
-                console.log('✅ Answer received, call connecting...');
+                console.log('✅ Answer received, remote description set, call connecting...');
                 currentCallState = 'connecting';
                 
                 // Clear timeout since other side answered
@@ -3554,9 +3568,11 @@
         // ========== Incoming Call ==========
         
         async function handleIncomingCall(offer, callerUserId) {
-            console.log('📞 Incoming call from user:', callerUserId);
-            console.log('Current user role:', currentUser?.role);
-            console.log('Offer details:', offer);
+            console.log('📞 =================================');
+            console.log('📞 INCOMING CALL from user:', callerUserId, 'Type:', typeof callerUserId);
+            console.log('👤 Current user:', currentUser?.id, currentUser?.username, 'Role:', currentUser?.role);
+            console.log('📝 Call ID:', offer.call_id);
+            console.log('📊 Current call state:', currentCallState);
             
             currentCallId = offer.call_id;
             currentCallState = 'ringing';
@@ -3567,20 +3583,25 @@
                 callerName = `User ${callerUserId}`;
             }
             
+            console.log('🏷️ Caller name:', callerName);
+            
             // Show incoming call modal
             const modal = document.getElementById('incoming-call-modal');
             const nameEl = document.getElementById('incoming-caller-name');
             
-            console.log('Modal element:', modal);
-            console.log('Name element:', nameEl);
+            console.log('🎭 Modal element exists:', !!modal, 'Has "show" class:', modal?.classList.contains('show'));
+            console.log('📛 Name element exists:', !!nameEl);
             
             if (nameEl) {
                 nameEl.textContent = `${callerName} is calling...`;
+                console.log('✅ Name set to:', nameEl.textContent);
+            } else {
+                console.error('❌ Name element not found!');
             }
             
             if (modal) {
                 modal.classList.add('show');
-                console.log('✅ Incoming call modal shown');
+                console.log('✅ Incoming call modal shown! Classes:', modal.className);
             } else {
                 console.error('❌ Modal element not found!');
             }
@@ -3588,6 +3609,8 @@
             // Store offer
             window.pendingOffer = offer;
             window.pendingCallerId = callerUserId;
+            console.log('💾 Stored: pendingCallerId =', window.pendingCallerId, 'Type:', typeof window.pendingCallerId);
+            console.log('📞 =================================');
         }
 
         async function answerCall() {
@@ -3627,11 +3650,16 @@
                 await peerConnection.setLocalDescription(answer);
                 
                 // Send answer back
+                console.log('🎯 SENDING ANSWER TO USER:', window.pendingCallerId, 'Type:', typeof window.pendingCallerId);
+                console.log('📝 Call ID:', currentCallId);
+                console.log('👤 Current user:', currentUser?.id, currentUser?.username, 'Role:', currentUser?.role);
+                
                 await sendSignal(window.pendingCallerId, {
                     type: 'answer',
                     sdp: answer.sdp,
                     call_id: currentCallId
                 });
+                console.log('✅ Answer signal sent successfully!');
                 
                 // Update call status in backend
                 await fetch(`${API_URL}/call/answer`, {
