@@ -2695,32 +2695,14 @@
                 if (!videoElement) return;
                 
                 debugLog('VIDEO', `Setting up video handlers for: ${videoElement.id}`);
+                debugLog('VIDEO', `Device type: ${deviceInfo.isMobile ? 'MOBILE' : 'DESKTOP'}`);
                 
-                // Separate handlers for desktop and mobile for better control
-                const handleClick = (e) => {
-                    // Desktop: Use click event
-                    const currentTime = new Date().getTime();
-                    const tapGap = currentTime - lastTapTime;
-                    
-                    if (tapGap < doubleTapDelay && tapGap > 0) {
-                        // Double click detected
-                        e.preventDefault();
-                        clearTimeout(tapTimeout);
-                        debugLog('VIDEO', 'Double-click detected - fullscreen');
-                        toggleFullscreen(videoElement);
-                        lastTapTime = 0;
-                    } else {
-                        // Single click - wait to confirm
-                        lastTapTime = currentTime;
-                        tapTimeout = setTimeout(() => {
-                            debugLog('VIDEO', 'Single click confirmed - swap videos');
-                            swapVideos();
-                        }, doubleTapDelay);
-                    }
-                };
+                let touchHandled = false; // Flag to prevent click after touch
                 
                 const handleTouch = (e) => {
                     // Mobile: Use touch event with better detection
+                    touchHandled = true; // Mark that touch was handled
+                    
                     const currentTime = new Date().getTime();
                     const tapGap = currentTime - lastTapTime;
                     
@@ -2742,13 +2724,51 @@
                             swapVideos();
                         }, doubleTapDelay);
                     }
+                    
+                    // Reset flag after 500ms to allow next interaction
+                    setTimeout(() => { touchHandled = false; }, 500);
                 };
                 
-                // Use click for desktop (mouse)
-                videoElement.addEventListener('click', handleClick);
+                const handleClick = (e) => {
+                    // Desktop: Use click event (or mobile fallback if no touch)
+                    
+                    // On mobile, ignore click if touch was already handled
+                    if (touchHandled) {
+                        debugLog('VIDEO', 'Click ignored - touch already handled');
+                        return;
+                    }
+                    
+                    const currentTime = new Date().getTime();
+                    const tapGap = currentTime - lastTapTime;
+                    
+                    debugLog('VIDEO', `Click on ${videoElement.id}, gap: ${tapGap}ms`);
+                    
+                    if (tapGap < doubleTapDelay && tapGap > 0) {
+                        // Double click detected
+                        e.preventDefault();
+                        clearTimeout(tapTimeout);
+                        debugLog('VIDEO', 'Double-click detected - fullscreen');
+                        toggleFullscreen(videoElement);
+                        lastTapTime = 0;
+                    } else {
+                        // Single click - wait to confirm
+                        lastTapTime = currentTime;
+                        tapTimeout = setTimeout(() => {
+                            debugLog('VIDEO', 'Single click confirmed - swap videos');
+                            swapVideos();
+                        }, doubleTapDelay);
+                    }
+                };
                 
-                // Use touchstart for mobile (more reliable than touchend)
-                videoElement.addEventListener('touchstart', handleTouch, { passive: false });
+                // Add touch handler if mobile (always add for mobile devices)
+                if (deviceInfo.isMobile) {
+                    debugLog('VIDEO', 'Adding touchstart handler for mobile');
+                    videoElement.addEventListener('touchstart', handleTouch, { passive: false });
+                }
+                
+                // Always add click handler (but it checks touchHandled flag on mobile)
+                debugLog('VIDEO', 'Adding click handler');
+                videoElement.addEventListener('click', handleClick);
             }
             
             setupVideoHandlers(localVideo);
@@ -3807,11 +3827,16 @@
             // Reset modal state first (in case it's still set from previous call)
             if (modal && attempt === 1) {
                 debugLog('MODAL', 'Resetting modal state from previous call...');
+                debugLog('MODAL', `Current state - display: ${modal.style.display}, classList: ${modal.className}`);
+                
+                // Force complete reset
                 modal.classList.remove('show');
-                modal.style.display = '';
-                modal.style.zIndex = '';
-                modal.style.visibility = '';
-                debugLog('MODAL', 'Modal reset complete');
+                modal.removeAttribute('style'); // Remove ALL inline styles
+                
+                // Force browser to process the reset
+                void modal.offsetHeight; // Trigger reflow
+                
+                debugLog('MODAL', 'Modal reset complete - all styles cleared');
             }
             
             // Check if elements exist
@@ -3839,20 +3864,21 @@
                 debugLog('MODAL', 'Adding "show" class...');
                 modal.classList.add('show');
                 
-                // Force visibility (in case CSS is broken)
+                // Force visibility with inline styles (override any CSS)
                 debugLog('MODAL', 'Setting inline styles for visibility...');
-                modal.style.display = 'flex';
-                modal.style.zIndex = '999999';
+                modal.style.cssText = 'display: flex !important; z-index: 999999 !important; visibility: visible !important;';
                 
-                // Verify it's actually visible
-                const computedStyle = window.getComputedStyle(modal);
-                debugLog('MODAL', `Computed style - display: ${computedStyle.display}, visibility: ${computedStyle.visibility}, z-index: ${computedStyle.zIndex}`);
-                
-                if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
-                    debugLog('MODAL', '⚠️ Modal CSS preventing visibility - forcing display');
-                    modal.style.display = 'flex !important';
-                    modal.style.visibility = 'visible !important';
-                }
+                // Small delay to ensure styles are applied
+                setTimeout(() => {
+                    // Verify it's actually visible
+                    const computedStyle = window.getComputedStyle(modal);
+                    debugLog('MODAL', `Computed style - display: ${computedStyle.display}, visibility: ${computedStyle.visibility}, z-index: ${computedStyle.zIndex}`);
+                    
+                    if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+                        debugLog('MODAL', '⚠️ Modal still not visible - emergency override');
+                        modal.setAttribute('style', 'display: flex !important; z-index: 999999 !important; visibility: visible !important; position: fixed !important;');
+                    }
+                }, 50);
                 
                 // Check modal position
                 const rect = modal.getBoundingClientRect();
@@ -3977,14 +4003,14 @@
                 debugLog('CALL-ANSWER', 'Cleared call timeout');
             }
             
-            // Hide incoming call modal (remove class AND clear inline styles)
+            // Hide incoming call modal completely
             debugLog('CALL-ANSWER', 'Hiding incoming call modal...');
             const incomingModal = document.getElementById('incoming-call-modal');
             if (incomingModal) {
                 const wasVisible = incomingModal.classList.contains('show');
                 incomingModal.classList.remove('show');
-                incomingModal.style.display = 'none'; // Clear forced inline style
-                incomingModal.style.zIndex = ''; // Reset z-index
+                // Set to display none for now (will be reset on next call)
+                incomingModal.style.cssText = 'display: none !important;';
                 debugLog('CALL-ANSWER', `✅ Modal hidden (was visible: ${wasVisible})`);
             } else {
                 debugLog('CALL-ANSWER', '⚠️ Incoming modal not found!');
@@ -4089,8 +4115,8 @@
             const incomingModal = document.getElementById('incoming-call-modal');
             if (incomingModal) {
                 incomingModal.classList.remove('show');
-                incomingModal.style.display = 'none';
-                incomingModal.style.zIndex = '';
+                incomingModal.style.cssText = 'display: none !important;';
+                debugLog('CALL-REJECT', 'Incoming modal hidden');
             }
             
             if (currentCallId) {
@@ -4132,15 +4158,15 @@
             const activeModal = document.getElementById('active-call-modal');
             if (activeModal) {
                 activeModal.classList.remove('show');
-                activeModal.style.display = 'none';
-                activeModal.style.zIndex = '';
+                activeModal.style.cssText = 'display: none !important;';
+                debugLog('CLEANUP', 'Active call modal hidden');
             }
             
             const incomingModal = document.getElementById('incoming-call-modal');
             if (incomingModal) {
                 incomingModal.classList.remove('show');
-                incomingModal.style.display = 'none';
-                incomingModal.style.zIndex = '';
+                incomingModal.style.cssText = 'display: none !important;';
+                debugLog('CLEANUP', 'Incoming modal hidden');
             }
             
             if (reason && reason !== 'Call ended') {
