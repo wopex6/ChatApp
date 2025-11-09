@@ -1768,8 +1768,8 @@
                 loadUserList();
                 messageInterval = setInterval(loadUserList, 10000); // Auto-refresh user list
                 
-                // Poll for incoming call signals (fast polling for better responsiveness)
-                signalPollInterval = setInterval(pollSignals, 300); // Poll every 300ms
+                // Poll for incoming call signals
+                signalPollInterval = setInterval(pollSignals, 2000); // Poll every 2 seconds
             } else {
                 // Get custom admin name for this user
                 const adminDisplayName = localStorage.getItem(`admin_name_for_user_${currentUser.id}`) || 'Ken';
@@ -1797,8 +1797,8 @@
                 loadMessages();
                 messageInterval = setInterval(loadMessages, 5000); // Auto-refresh every 5s
                 
-                // Poll for incoming call signals (fast polling for better responsiveness)
-                signalPollInterval = setInterval(pollSignals, 300); // Poll every 300ms
+                // Poll for incoming call signals
+                signalPollInterval = setInterval(pollSignals, 2000); // Poll every 2 seconds
             }
         }
 
@@ -3087,7 +3087,7 @@
                 document.getElementById('active-call-modal').classList.add('show');
                 
                 // Set up WebRTC with user (not admin)
-                await setupPeerConnection(userId);
+                await setupPeerConnectionForUser(userId);
                 
                 // Create and send offer (include video constraint even if not enabled yet)
                 const offer = await peerConnection.createOffer({
@@ -3192,7 +3192,7 @@
                 showCallingUI();
                 
                 // Set up WebRTC
-                await setupPeerConnection(adminId);
+                await setupPeerConnection();
                 
                 // Create and send offer (include video constraint even if not enabled yet)
                 const offer = await peerConnection.createOffer({
@@ -3231,42 +3231,23 @@
             }
         }
 
-        // ========== WebRTC Setup (Unified) ==========
+        // ========== WebRTC Setup ==========
         
-        /**
-         * Unified peer connection setup for ALL call scenarios:
-         * - Admin calling user
-         * - User calling admin
-         * - Phone to phone
-         * - PC to PC
-         * - Any combination!
-         * 
-         * @param {number} remoteUserId - ID of the user we're calling/answering
-         */
-        async function setupPeerConnection(remoteUserId) {
-            console.log('🔧 Setting up peer connection with user:', remoteUserId);
-            
+        // For admin calling users
+        async function setupPeerConnectionForUser(userId) {
             const configuration = {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun3.l.google.com:19302' },
-                    { urls: 'stun:stun4.l.google.com:19302' }
+                    { urls: 'stun:stun1.l.google.com:19302' }
                 ]
             };
             
             peerConnection = new RTCPeerConnection(configuration);
             
             // Add local stream tracks
-            if (localStream) {
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                    console.log('➕ Added local track:', track.kind);
-                });
-            } else {
-                console.warn('⚠️ No local stream when setting up peer connection');
-            }
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
             
             // Handle remote stream
             peerConnection.ontrack = (event) => {
@@ -3297,11 +3278,11 @@
                 }
             };
             
-            // Handle ICE candidates - Works for both directions
+            // Handle ICE candidates
             peerConnection.onicecandidate = async (event) => {
                 if (event.candidate) {
-                    console.log('🧊 New ICE candidate for user:', remoteUserId);
-                    await sendSignal(remoteUserId, {
+                    console.log('🧊 New ICE candidate');
+                    await sendSignal(userId, {
                         type: 'ice',
                         candidate: event.candidate.toJSON(),
                         call_id: currentCallId
@@ -3309,21 +3290,12 @@
                 }
             };
             
-            // Handle ICE connection state changes
-            peerConnection.oniceconnectionstatechange = () => {
-                console.log('🧊 ICE connection state:', peerConnection.iceConnectionState);
-                if (peerConnection.iceConnectionState === 'failed') {
-                    console.error('❌ ICE connection failed - attempting restart');
-                    peerConnection.restartIce();
-                }
-            };
-            
             // Handle connection state changes
             peerConnection.onconnectionstatechange = () => {
-                console.log('🔌 Connection state:', peerConnection.connectionState);
+                console.log('Connection state:', peerConnection.connectionState);
                 
                 if (peerConnection.connectionState === 'connected') {
-                    console.log('✅ Call connected with user:', remoteUserId);
+                    console.log('✅ Call connected');
                     currentCallState = 'connected';
                     
                     // Clear timeout since call connected
@@ -3335,40 +3307,94 @@
                     
                     // Update UI to show connected
                     const statusEl = document.getElementById('active-call-status');
-                    if (statusEl) {
-                        statusEl.textContent = 'Connected';
-                        statusEl.style.color = ''; // Reset color
-                    }
+                    if (statusEl) statusEl.textContent = 'Connected';
                     
-                    // Ensure modal is visible (important for all scenarios)
+                    // Ensure modal is visible (admin calling user)
                     const activeModal = document.getElementById('active-call-modal');
                     if (activeModal && !activeModal.classList.contains('show')) {
                         activeModal.classList.add('show');
-                        console.log('📱 Showing active call modal');
                     }
                     
-                    // Start call timer if not already running
-                    if (!callTimerInterval) {
-                        startCallTimer();
+                    if (!callTimerInterval) startCallTimer();
+                } else if (peerConnection.connectionState === 'disconnected' || 
+                           peerConnection.connectionState === 'failed') {
+                    console.log('❌ Call disconnected');
+                    hangupCall('Connection lost');
+                }
+            };
+        }
+        
+        // For users calling admin
+        async function setupPeerConnection() {
+            const configuration = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            };
+            
+            peerConnection = new RTCPeerConnection(configuration);
+            
+            // Add local stream tracks
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+            
+            // Handle remote stream
+            peerConnection.ontrack = (event) => {
+                console.log('📥 Received remote track:', event.track.kind);
+                remoteStream = event.streams[0];
+                
+                // Always set audio element for sound
+                const remoteAudio = document.getElementById('remote-audio');
+                if (remoteAudio && remoteStream) {
+                    remoteAudio.srcObject = remoteStream;
+                    console.log('🔊 Audio stream set');
+                }
+                
+                // If video track, also set video element
+                if (event.track.kind === 'video') {
+                    const remoteVideo = document.getElementById('remote-video');
+                    if (remoteVideo) {
+                        remoteVideo.srcObject = remoteStream;
+                        
+                        // Force play the video element (important for some browsers)
+                        remoteVideo.play().catch(e => console.log('Video autoplay:', e));
+                        
+                        // Show video container
+                        document.getElementById('video-container').style.display = 'block';
+                        document.getElementById('audio-view').style.display = 'none';
+                        console.log('📹 Video stream set and playing');
                     }
-                    
-                } else if (peerConnection.connectionState === 'disconnected') {
-                    console.log('⚠️ Call disconnected - waiting for reconnection...');
-                    // Give it 5 seconds to reconnect
-                    setTimeout(() => {
-                        if (peerConnection && peerConnection.connectionState === 'disconnected') {
-                            console.log('❌ Connection still disconnected after 5s');
-                            hangupCall('Connection lost');
-                        }
-                    }, 5000);
-                    
-                } else if (peerConnection.connectionState === 'failed') {
-                    console.log('❌ Call connection failed');
-                    hangupCall('Connection failed');
                 }
             };
             
-            console.log('✅ Peer connection setup complete');
+            // Handle ICE candidates
+            peerConnection.onicecandidate = async (event) => {
+                if (event.candidate) {
+                    console.log('🧊 New ICE candidate');
+                    await sendSignal(adminId, {
+                        type: 'ice',
+                        candidate: event.candidate.toJSON(),
+                        call_id: currentCallId
+                    });
+                }
+            };
+            
+            // Handle connection state changes
+            peerConnection.onconnectionstatechange = () => {
+                console.log('Connection state:', peerConnection.connectionState);
+                
+                if (peerConnection.connectionState === 'connected') {
+                    console.log('✅ Call connected');
+                    currentCallState = 'connected';
+                    startCallTimer();
+                } else if (peerConnection.connectionState === 'disconnected' || 
+                           peerConnection.connectionState === 'failed') {
+                    console.log('❌ Call disconnected');
+                    hangupCall('Connection lost');
+                }
+            };
         }
 
         // ========== Signaling ==========
@@ -3573,9 +3599,8 @@
                 console.log('📡 Signal polling already running');
                 return;
             }
-            // Fast polling (300ms) for real-time signal delivery
-            signalPollInterval = setInterval(pollSignals, 300);
-            console.log('📡 Signal polling started (300ms interval)');
+            signalPollInterval = setInterval(pollSignals, 1000);
+            console.log('📡 Signal polling started');
         }
 
         function stopSignalPolling() {
@@ -3591,7 +3616,7 @@
             console.log('📞 =================================');
             console.log('📞 INCOMING CALL from user:', callerUserId, 'Type:', typeof callerUserId);
             console.log('👤 Current user:', currentUser?.id, currentUser?.username, 'Role:', currentUser?.role);
-            console.log('📋 Call ID:', offer.call_id);
+            console.log('📝 Call ID:', offer.call_id);
             console.log('📊 Current call state:', currentCallState);
             
             currentCallId = offer.call_id;
@@ -3605,166 +3630,32 @@
             
             console.log('🏷️ Caller name:', callerName);
             
-            // Store offer for answer
-            window.pendingOffer = offer;
-            window.pendingCallerId = callerUserId;
-            console.log('💾 Stored: pendingCallerId =', window.pendingCallerId, 'Type:', typeof window.pendingCallerId);
-            
-            // Show incoming call with robust retry system
-            showIncomingCallModal(callerName);
-            
-            console.log('📞 =================================');
-        }
-        
-        /**
-         * Robust modal display with retries and multiple fallbacks
-         * Ensures incoming calls are NEVER missed
-         */
-        function showIncomingCallModal(callerName, attempt = 1) {
-            const maxAttempts = 3;
-            
-            console.log(`📢 Attempt ${attempt}/${maxAttempts} to show incoming call modal for ${callerName}`);
-            
+            // Show incoming call modal
             const modal = document.getElementById('incoming-call-modal');
             const nameEl = document.getElementById('incoming-caller-name');
             
-            // Check if elements exist
-            if (!modal || !nameEl) {
-                console.warn(`⚠️ Modal elements not ready (attempt ${attempt}/${maxAttempts})`);
-                
-                if (attempt < maxAttempts) {
-                    // Retry after 100ms
-                    setTimeout(() => showIncomingCallModal(callerName, attempt + 1), 100);
-                    return;
-                } else {
-                    // All retries failed - use fallbacks
-                    console.error('❌ Modal not available after retries - using fallbacks');
-                    useFallbackNotification(callerName);
-                    return;
-                }
-            }
+            console.log('🎭 Modal element exists:', !!modal, 'Has "show" class:', modal?.classList.contains('show'));
+            console.log('📛 Name element exists:', !!nameEl);
             
-            // Elements exist - show modal
-            try {
+            if (nameEl) {
                 nameEl.textContent = `${callerName} is calling...`;
-                modal.classList.add('show');
-                
-                // Force visibility (in case CSS is broken)
-                modal.style.display = 'flex';
-                modal.style.zIndex = '999999';
-                
-                // Verify it's actually visible
-                const computedStyle = window.getComputedStyle(modal);
-                if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
-                    console.warn('⚠️ Modal CSS preventing visibility - forcing display');
-                    modal.style.display = 'flex !important';
-                    modal.style.visibility = 'visible !important';
-                }
-                
-                console.log('✅ Incoming call modal shown successfully');
-                console.log('   - Display:', computedStyle.display);
-                console.log('   - Visibility:', computedStyle.visibility);
-                console.log('   - Z-index:', computedStyle.zIndex);
-                
-                // Multi-sensory alerts
-                playIncomingCallAlert();
-                
-            } catch (error) {
-                console.error('❌ Error showing modal:', error);
-                useFallbackNotification(callerName);
-            }
-        }
-        
-        /**
-         * Multi-sensory alert for incoming calls
-         */
-        function playIncomingCallAlert() {
-            // 1. Vibration (mobile)
-            if (navigator.vibrate) {
-                // Long vibration pattern for incoming call
-                navigator.vibrate([500, 200, 500, 200, 500, 200, 500]);
-                console.log('📳 Vibration triggered');
-            }
-            
-            // 2. Audio notification (beep pattern)
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.value = 880; // A5 note
-                oscillator.type = 'sine';
-                
-                // Beep pattern: beep-beep-pause-beep-beep
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.15);
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.2);
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.35);
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.6);
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.75);
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.8);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.0);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 1.0);
-                
-                console.log('🔔 Incoming call sound played');
-            } catch (error) {
-                console.log('⚠️ Could not play sound:', error);
-            }
-            
-            // 3. Page title flash (if user has app in background)
-            const originalTitle = document.title;
-            let flashCount = 0;
-            const flashInterval = setInterval(() => {
-                document.title = flashCount % 2 === 0 ? '📞 INCOMING CALL!' : originalTitle;
-                flashCount++;
-                if (flashCount > 10) {
-                    clearInterval(flashInterval);
-                    document.title = originalTitle;
-                }
-            }, 500);
-        }
-        
-        /**
-         * Fallback notification methods when modal fails
-         */
-        function useFallbackNotification(callerName) {
-            console.log('🔔 Using fallback notification methods');
-            
-            // Fallback 1: Browser Notification API
-            if ('Notification' in window) {
-                if (Notification.permission === 'granted') {
-                    new Notification(`Incoming call from ${callerName}`, {
-                        body: 'Click to answer',
-                        icon: '/static/phone-icon.png',
-                        requireInteraction: true,
-                        tag: 'incoming-call',
-                        vibrate: [500, 200, 500]
-                    });
-                    console.log('✅ Browser notification shown');
-                    return;
-                } else if (Notification.permission !== 'denied') {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === 'granted') {
-                            useFallbackNotification(callerName);
-                        }
-                    });
-                }
-            }
-            
-            // Fallback 2: Alert (always works, blocks until dismissed)
-            console.log('⚠️ Using alert() as last resort');
-            const answer = confirm(`INCOMING CALL from ${callerName}\n\nClick OK to answer, Cancel to reject.`);
-            
-            if (answer) {
-                answerCall();
+                console.log('✅ Name set to:', nameEl.textContent);
             } else {
-                rejectCall();
+                console.error('❌ Name element not found!');
             }
+            
+            if (modal) {
+                modal.classList.add('show');
+                console.log('✅ Incoming call modal shown! Classes:', modal.className);
+            } else {
+                console.error('❌ Modal element not found!');
+            }
+            
+            // Store offer
+            window.pendingOffer = offer;
+            window.pendingCallerId = callerUserId;
+            console.log('💾 Stored: pendingCallerId =', window.pendingCallerId, 'Type:', typeof window.pendingCallerId);
+            console.log('📞 =================================');
         }
 
         async function answerCall() {
@@ -3783,8 +3674,12 @@
                 // Get microphone permission
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 
-                // Set up peer connection - unified for all scenarios
-                await setupPeerConnection(window.pendingCallerId);
+                // Set up peer connection (admin answering, so target is the caller)
+                if (currentUser.role === 'administrator') {
+                    await setupPeerConnectionForUser(window.pendingCallerId);
+                } else {
+                    await setupPeerConnection();
+                }
                 
                 // Set remote description (offer)
                 await peerConnection.setRemoteDescription(new RTCSessionDescription({

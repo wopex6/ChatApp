@@ -3,12 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatApp - Message Ken Tse</title>
-    
-    <!-- Mobile Console for iPhone Debugging -->
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
-    
+    <title>ChatApp - Message Ken Tse v7</title>
     <style>
         * {
             margin: 0;
@@ -23,7 +18,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 10px;
         }
 
         .container {
@@ -31,9 +26,9 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             width: 100%;
-            max-width: 900px;
-            height: 90vh;
-            max-height: 800px;
+            max-width: 1400px;
+            height: 96vh;
+            max-height: none;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -58,7 +53,7 @@
         }
 
         .content {
-            padding: 40px;
+            padding: 20px;
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -144,7 +139,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
+            padding: 12px 16px;
             border-bottom: 2px solid #e1e8ed;
             background: white;
             position: sticky;
@@ -169,10 +164,10 @@
 
         .messages-container {
             flex: 1;
-            min-height: 50vh;
+            min-height: 0;
             overflow-y: auto;
             overflow-x: visible;
-            padding: 20px 16px;
+            padding: 16px;
             background: #E5DDD5;
             border-radius: 0;
             margin: 0;
@@ -853,30 +848,21 @@
         
         /* Voice Call Styles */
         .call-button {
-            background: #4caf50;
+            background: transparent;
             border: none;
-            padding: 8px 12px;
+            padding: 8px;
             cursor: pointer;
-            font-size: 18px;
-            border-radius: 50%;
-            transition: all 0.2s;
-            flex-shrink: 0;
-            min-width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 20px;
+            transition: transform 0.2s;
         }
         
         .call-button:hover {
-            transform: scale(1.1);
-            background: #45a049;
+            transform: scale(1.2);
         }
         
         .call-button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            background: #cccccc;
         }
         
         .status-indicator {
@@ -931,6 +917,7 @@
             z-index: 2000;
             justify-content: center;
             align-items: center;
+            overflow-y: auto;
         }
         
         .call-modal.show {
@@ -943,7 +930,10 @@
             border-radius: 20px;
             text-align: center;
             min-width: 400px;
+            max-height: 95vh;
+            overflow-y: auto;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            margin: auto;
         }
         
         .call-avatar {
@@ -1116,17 +1106,12 @@
                 max-height: 60vh;
             }
             
-            /* Chat area visible indicator on mobile */
-            #chat-area {
-                border-left: 3px solid #667eea;
-            }
-            
-            /* Messages title always visible on mobile */
-            #messages-title {
-                display: block !important;
-                position: sticky;
-                top: 0;
-                z-index: 10;
+            /* Call modal on mobile */
+            .call-modal-content {
+                min-width: auto;
+                width: 95vw;
+                max-width: 95vw;
+                padding: 20px;
             }
             
             /* Video calls on mobile */
@@ -1206,7 +1191,7 @@
         </div>
 
         <div class="content">
-            <!-- Login Section -->
+            <!-- Login/Signup Section -->
             <div id="auth-section" class="auth-section">
                 <div class="tabs">
                     <button class="tab active" onclick="showLogin()">Login</button>
@@ -1218,13 +1203,13 @@
                     <div class="form-group">
                         <label>Username</label>
                         <input type="text" id="login-username" name="username" 
-                               placeholder="Enter username" autocomplete="username" required>
+                               placeholder="Enter username" autocomplete="username">
                     </div>
                     <div class="form-group">
                         <label>Password</label>
                         <div class="password-wrapper">
                             <input type="password" id="login-password" name="password" 
-                                   placeholder="Enter password" autocomplete="current-password" style="padding-right: 60px;" required>
+                                   placeholder="Enter password" autocomplete="current-password" style="padding-right: 60px;">
                             <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('login-password', this)">
                                 Show
                             </button>
@@ -1318,12 +1303,7 @@
                     </div>
 
                     <!-- Main Chat Area -->
-                    <div id="chat-area" style="flex: 1; display: flex; flex-direction: column; min-width: 0; background: #fff;">
-                        <!-- Messages Title Bar (visible on mobile) -->
-                        <div id="messages-title" style="display: none; padding: 10px 15px; background: #667eea; color: white; font-weight: 600; border-bottom: 2px solid #5568d3;">
-                            <span id="chat-username">Select a user</span>
-                        </div>
-                        
+                    <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
                         <!-- Messages -->
                         <div id="messages-container" class="messages-container">
                             <div class="loading">Loading messages...</div>
@@ -1350,6 +1330,11 @@
                                 <button class="btn-attachment" onclick="toggleEmojiPicker()">😊</button>
                                 <button class="btn-send" onclick="sendMessage()">➤</button>
                                 <input type="file" id="file-input" style="display: none;" onchange="handleFileSelect(event)">
+                            </div>
+                            <!-- File Preview -->
+                            <div id="file-preview" class="file-preview">
+                                <span id="file-preview-name" class="file-preview-name"></span>
+                                <button class="file-preview-remove" onclick="removeFile()">✕ Remove</button>
                             </div>
                             <!-- Emoji Picker -->
                             <div id="emoji-picker" class="emoji-picker">
@@ -1456,8 +1441,8 @@
         <div class="call-modal-content">
             <!-- Video Container -->
             <div id="video-container" class="video-container" style="display: none;">
-                <video id="remote-video" class="remote-video" autoplay playsinline style="cursor: pointer;" title="Single tap: swap | Double tap: fullscreen"></video>
-                <video id="local-video" class="local-video" autoplay playsinline muted style="cursor: pointer;" title="Single tap: swap | Double tap: fullscreen"></video>
+                <video id="remote-video" class="remote-video" autoplay playsinline></video>
+                <video id="local-video" class="local-video" autoplay playsinline muted></video>
             </div>
             
             <!-- Audio/Avatar View -->
@@ -1496,6 +1481,7 @@
         let adminMessageInterval = null;  // Separate interval for admin message view
         let selectedFile = null;
         let replyToId = null;  // Track message being replied to
+        let lastMessageIds = null;  // Track message IDs to prevent unnecessary reloads
         
         // Voice call variables
         let heartbeatInterval = null;
@@ -1727,6 +1713,11 @@
         }
 
         async function updateUserWelcomeMessage() {
+            // Guard: Exit if user not loaded yet
+            if (!currentUser || !currentUser.id) {
+                return;
+            }
+            
             // For regular users, show: "Welcome <user>, <admin> is <status>" (but hide "Online")
             const adminDisplayName = localStorage.getItem(`admin_name_for_user_${currentUser.id}`) || 'Ken';
             const status = await getUserStatus(adminId);
@@ -1768,13 +1759,16 @@
                 loadUserList();
                 messageInterval = setInterval(loadUserList, 10000); // Auto-refresh user list
                 
-                // Poll for incoming call signals (fast polling for better responsiveness)
-                signalPollInterval = setInterval(pollSignals, 300); // Poll every 300ms
+                // Poll for incoming call signals
+                signalPollInterval = setInterval(pollSignals, 2000); // Poll every 2 seconds
             } else {
                 // Get custom admin name for this user
                 const adminDisplayName = localStorage.getItem(`admin_name_for_user_${currentUser.id}`) || 'Ken';
                 document.getElementById('header-subtitle').textContent = `Chat with ${adminDisplayName}`;
+                document.getElementById('chat-title').textContent = `${adminDisplayName}`;
                 document.getElementById('admin-panel').style.display = 'none'; // Hide admin panel for regular users
+                document.getElementById('messages-container').style.display = 'block'; // Explicitly show messages for regular users
+                document.getElementById('reply-bar').style.display = 'none'; // Hide reply bar for regular users
                 document.getElementById('message-input-section').style.display = 'flex';
                 
                 // Show call button for regular users
@@ -1797,13 +1791,12 @@
                 loadMessages();
                 messageInterval = setInterval(loadMessages, 5000); // Auto-refresh every 5s
                 
-                // Poll for incoming call signals (fast polling for better responsiveness)
-                signalPollInterval = setInterval(pollSignals, 300); // Poll every 300ms
+                // Poll for incoming call signals
+                signalPollInterval = setInterval(pollSignals, 2000); // Poll every 2 seconds
             }
         }
 
         // Helper function to parse timestamps reliably across all browsers (iOS, Android, etc.)
-        // Displays times in the client's local timezone
         function parseTimestamp(timestamp) {
             if (!timestamp) return null;
             
@@ -1906,6 +1899,8 @@
                 });
                 
                 const users = await response.json();
+                console.log('[Admin User List] Loaded users:', users);
+                
                 const userListDiv = document.getElementById('user-list');
                 
                 if (users.length === 0) {
@@ -1928,13 +1923,24 @@
                         formatTimestamp(user.last_message_time) : 
                         '<span style="color: #999; font-size: 11px;">New user</span>';
                     
+                    // Online status indicator
+                    const isOnline = user.status === 'online';
+                    const statusDotColor = isOnline ? '#ffc107' : '#dc3545'; // Yellow for online, Red for offline
+                    const statusText = isOnline ? 'Online' : 'Offline';
+                    console.log(`[Status] ${user.username}: status=${user.status}, isOnline=${isOnline}, color=${statusDotColor}`);
+                    
                     userDiv.innerHTML = `
-                        <div class="user-info">
-                            <div class="user-name">${user.username}</div>
-                            <div class="last-message-time">${timeDisplay}</div>
+                        <div style="position: relative;">
+                            <div class="user-info">
+                                <div class="user-name">
+                                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${statusDotColor}; margin-right: 6px; box-shadow: 0 0 4px ${statusDotColor};"></span>
+                                    ${user.username}
+                                </div>
+                                <div class="last-message-time">${timeDisplay}</div>
+                            </div>
+                            ${unreadBadge}
+                            <button class="call-button" onclick="event.stopPropagation(); callUser(${user.id}, '${user.username.replace(/'/g, "\\'")}')">📞</button>
                         </div>
-                        ${unreadBadge}
-                        <button class="call-button" onclick="event.stopPropagation(); callUser(${user.id}, '${user.username.replace(/'/g, "\\'")}')">📞</button>
                     `;
                     userListDiv.appendChild(userDiv);
                 });
@@ -1947,12 +1953,6 @@
             selectedUserId = userId;
             document.getElementById('chat-title').textContent = '';
             document.getElementById('message-input-section').style.display = 'flex'; // Show input when user selected
-            
-            // Show messages title bar (especially helpful on mobile)
-            const messagesTitle = document.getElementById('messages-title');
-            const chatUsername = document.getElementById('chat-username');
-            if (messagesTitle) messagesTitle.style.display = 'block';
-            if (chatUsername) chatUsername.textContent = `Chat with ${username}`;
             
             // Clear any existing admin message interval
             if (adminMessageInterval) {
@@ -2021,6 +2021,13 @@
         function displayMessages(messages) {
             const container = document.getElementById('messages-container');
             
+            // Check if messages have changed (prevent reloading video/audio)
+            const currentMessageIds = messages.map(m => `${m.id}-${m.is_read}`).join(',');
+            if (currentMessageIds === lastMessageIds) {
+                return; // No changes, skip reload
+            }
+            lastMessageIds = currentMessageIds;
+            
             if (messages.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: #666;">No messages yet. Start the conversation!</p>';
                 return;
@@ -2030,9 +2037,7 @@
             let html = '';
             
             messages.forEach((msg, index) => {
-                const msgDate = parseTimestamp(msg.timestamp);
-                if (!msgDate) return; // Skip invalid dates
-                
+                const msgDate = new Date(msg.timestamp);
                 const dateStr = msgDate.toLocaleDateString();
                 const timeStr = msgDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
                 
@@ -2323,6 +2328,7 @@
                     input.style.height = 'auto'; // Reset textarea height
                     removeFile();
                     cancelReply();
+                    lastMessageIds = null; // Force refresh after sending
                     if (currentUser.role === 'administrator' && selectedUserId) {
                         await loadUserMessages(selectedUserId);
                         await loadUserList(); // Refresh unread counts IMMEDIATELY
@@ -2620,47 +2626,6 @@
         let startWidth = 0;
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Setup video tap/click handlers
-            const localVideo = document.getElementById('local-video');
-            const remoteVideo = document.getElementById('remote-video');
-            
-            // Track tap timing for distinguishing single vs double tap
-            let lastTapTime = 0;
-            let tapTimeout = null;
-            const doubleTapDelay = 300; // milliseconds
-            
-            function setupVideoHandlers(videoElement) {
-                if (!videoElement) return;
-                
-                // Handle both click (desktop) and touchend (mobile)
-                const handleInteraction = (e) => {
-                    const currentTime = new Date().getTime();
-                    const tapGap = currentTime - lastTapTime;
-                    
-                    if (tapGap < doubleTapDelay && tapGap > 0) {
-                        // Double tap/click detected
-                        e.preventDefault(); // Only prevent on double-tap
-                        clearTimeout(tapTimeout);
-                        toggleFullscreen(videoElement);
-                        lastTapTime = 0; // Reset
-                    } else {
-                        // Possible single tap/click - wait to confirm
-                        lastTapTime = currentTime;
-                        tapTimeout = setTimeout(() => {
-                            // Single tap/click confirmed
-                            swapVideos();
-                        }, doubleTapDelay);
-                    }
-                };
-                
-                videoElement.addEventListener('click', handleInteraction);
-                videoElement.addEventListener('touchend', handleInteraction, { passive: false });
-            }
-            
-            setupVideoHandlers(localVideo);
-            setupVideoHandlers(remoteVideo);
-            
-            // Setup resize handle
             const resizeHandle = document.getElementById('resize-handle');
             const adminPanel = document.getElementById('admin-panel');
             
@@ -2698,45 +2663,6 @@
                         localStorage.setItem(`admin_width_${currentAdminTab}`, tabWidths[currentAdminTab]);
                     }
                 });
-            }
-        });
-
-        // ========== F5 Key: Refresh Data Instead of Page Reload ==========
-        
-        document.addEventListener('keydown', (e) => {
-            // Check if F5 key is pressed (key code 116 or key name 'F5')
-            if (e.key === 'F5' || e.keyCode === 116) {
-                e.preventDefault(); // Prevent page reload
-                
-                // Refresh data based on current screen
-                const authSection = document.getElementById('auth-section');
-                const chatSection = document.getElementById('chat-section');
-                
-                if (chatSection && chatSection.style.display !== 'none') {
-                    // User is logged in - refresh chat data
-                    console.log('🔄 F5: Refreshing chat data...');
-                    
-                    // Refresh messages
-                    if (typeof loadMessages === 'function') {
-                        loadMessages();
-                    }
-                    
-                    // Refresh user list if admin
-                    if (currentUser && currentUser.role === 'administrator') {
-                        if (typeof loadUserList === 'function') {
-                            loadUserList();
-                        }
-                        if (typeof loadAllUsers === 'function' && currentAdminTab === 'users') {
-                            loadAllUsers(showDeletedUsers);
-                        }
-                    }
-                    
-                    // Show feedback
-                    showSuccess('Data refreshed');
-                } else if (authSection && authSection.style.display !== 'none') {
-                    // User is on login screen - just prevent reload
-                    console.log('🔄 F5: On login screen, prevented reload');
-                }
             }
         });
 
@@ -2893,14 +2819,17 @@
                 });
 
                 if (response.ok) {
-                    showSuccess(`User ${username} restored successfully`);
-                    loadAllUsers(true); // Reload
+                    showSuccess(`✅ User ${username} restored successfully`);
+                    // Reload with current checkbox state
+                    const checkbox = document.getElementById('show-deleted-toggle');
+                    await loadAllUsers(checkbox.checked);
                 } else {
                     const data = await response.json();
                     showError(data.error || 'Failed to restore user');
                 }
             } catch (error) {
-                showError('Failed to restore user');
+                console.error('Restore error:', error);
+                showError('Failed to restore user: ' + error.message);
             }
         }
 
@@ -2910,20 +2839,26 @@
                 `Are you sure you want to PERMANENTLY delete ${username}? This CANNOT be undone! All their messages will be deleted.`,
                 async () => {
                     try {
+                        console.log(`[Permanent Delete] Deleting user ${userId} (${username})`);
                         const response = await fetch(`${API_URL}/admin/users/${userId}/permanent-delete`, {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
 
+                        const data = await response.json();
+                        console.log(`[Permanent Delete] Response:`, data);
+
                         if (response.ok) {
-                            showSuccess(`User ${username} permanently deleted`);
-                            loadAllUsers(true); // Reload
+                            showSuccess(`✅ User ${username} permanently deleted`);
+                            // Reload with current checkbox state
+                            const checkbox = document.getElementById('show-deleted-toggle');
+                            await loadAllUsers(checkbox.checked);
                         } else {
-                            const data = await response.json();
-                            showError(data.error || 'Failed to delete user');
+                            showError(data.error || 'Failed to permanently delete user');
                         }
                     } catch (error) {
-                        showError('Failed to delete user');
+                        console.error('Permanent delete error:', error);
+                        showError('Failed to permanently delete user: ' + error.message);
                     }
                 }
             );
@@ -3087,9 +3022,9 @@
                 document.getElementById('active-call-modal').classList.add('show');
                 
                 // Set up WebRTC with user (not admin)
-                await setupPeerConnection(userId);
+                await setupPeerConnectionForUser(userId);
                 
-                // Create and send offer (include video constraint even if not enabled yet)
+                // Create and send offer (include video constraint)
                 const offer = await peerConnection.createOffer({
                     offerToReceiveAudio: true,
                     offerToReceiveVideo: true
@@ -3192,9 +3127,9 @@
                 showCallingUI();
                 
                 // Set up WebRTC
-                await setupPeerConnection(adminId);
+                await setupPeerConnection();
                 
-                // Create and send offer (include video constraint even if not enabled yet)
+                // Create and send offer (include video constraint)
                 const offer = await peerConnection.createOffer({
                     offerToReceiveAudio: true,
                     offerToReceiveVideo: true
@@ -3231,42 +3166,23 @@
             }
         }
 
-        // ========== WebRTC Setup (Unified) ==========
+        // ========== WebRTC Setup ==========
         
-        /**
-         * Unified peer connection setup for ALL call scenarios:
-         * - Admin calling user
-         * - User calling admin
-         * - Phone to phone
-         * - PC to PC
-         * - Any combination!
-         * 
-         * @param {number} remoteUserId - ID of the user we're calling/answering
-         */
-        async function setupPeerConnection(remoteUserId) {
-            console.log('🔧 Setting up peer connection with user:', remoteUserId);
-            
+        // For admin calling users
+        async function setupPeerConnectionForUser(userId) {
             const configuration = {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun3.l.google.com:19302' },
-                    { urls: 'stun:stun4.l.google.com:19302' }
+                    { urls: 'stun:stun1.l.google.com:19302' }
                 ]
             };
             
             peerConnection = new RTCPeerConnection(configuration);
             
             // Add local stream tracks
-            if (localStream) {
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                    console.log('➕ Added local track:', track.kind);
-                });
-            } else {
-                console.warn('⚠️ No local stream when setting up peer connection');
-            }
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
             
             // Handle remote stream
             peerConnection.ontrack = (event) => {
@@ -3297,11 +3213,11 @@
                 }
             };
             
-            // Handle ICE candidates - Works for both directions
+            // Handle ICE candidates
             peerConnection.onicecandidate = async (event) => {
                 if (event.candidate) {
-                    console.log('🧊 New ICE candidate for user:', remoteUserId);
-                    await sendSignal(remoteUserId, {
+                    console.log('🧊 New ICE candidate');
+                    await sendSignal(userId, {
                         type: 'ice',
                         candidate: event.candidate.toJSON(),
                         call_id: currentCallId
@@ -3309,21 +3225,12 @@
                 }
             };
             
-            // Handle ICE connection state changes
-            peerConnection.oniceconnectionstatechange = () => {
-                console.log('🧊 ICE connection state:', peerConnection.iceConnectionState);
-                if (peerConnection.iceConnectionState === 'failed') {
-                    console.error('❌ ICE connection failed - attempting restart');
-                    peerConnection.restartIce();
-                }
-            };
-            
             // Handle connection state changes
             peerConnection.onconnectionstatechange = () => {
-                console.log('🔌 Connection state:', peerConnection.connectionState);
+                console.log('Connection state:', peerConnection.connectionState);
                 
                 if (peerConnection.connectionState === 'connected') {
-                    console.log('✅ Call connected with user:', remoteUserId);
+                    console.log('✅ Call connected');
                     currentCallState = 'connected';
                     
                     // Clear timeout since call connected
@@ -3335,40 +3242,109 @@
                     
                     // Update UI to show connected
                     const statusEl = document.getElementById('active-call-status');
-                    if (statusEl) {
-                        statusEl.textContent = 'Connected';
-                        statusEl.style.color = ''; // Reset color
-                    }
+                    if (statusEl) statusEl.textContent = 'Connected';
                     
-                    // Ensure modal is visible (important for all scenarios)
+                    // Ensure modal is visible (admin calling user)
                     const activeModal = document.getElementById('active-call-modal');
                     if (activeModal && !activeModal.classList.contains('show')) {
                         activeModal.classList.add('show');
-                        console.log('📱 Showing active call modal');
                     }
                     
-                    // Start call timer if not already running
-                    if (!callTimerInterval) {
-                        startCallTimer();
-                    }
+                    if (!callTimerInterval) startCallTimer();
                     
-                } else if (peerConnection.connectionState === 'disconnected') {
-                    console.log('⚠️ Call disconnected - waiting for reconnection...');
-                    // Give it 5 seconds to reconnect
+                    // Remind user about video option
                     setTimeout(() => {
-                        if (peerConnection && peerConnection.connectionState === 'disconnected') {
-                            console.log('❌ Connection still disconnected after 5s');
-                            hangupCall('Connection lost');
+                        if (currentCallState === 'connected' && !localStream.getVideoTracks()[0]) {
+                            showSuccess('💡 Tip: Click 📹 to enable video!');
                         }
-                    }, 5000);
-                    
-                } else if (peerConnection.connectionState === 'failed') {
-                    console.log('❌ Call connection failed');
-                    hangupCall('Connection failed');
+                    }, 3000);
+                } else if (peerConnection.connectionState === 'disconnected' || 
+                           peerConnection.connectionState === 'failed') {
+                    console.log('❌ Call disconnected');
+                    hangupCall('Connection lost');
+                }
+            };
+        }
+        
+        // For users calling admin
+        async function setupPeerConnection() {
+            const configuration = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            };
+            
+            peerConnection = new RTCPeerConnection(configuration);
+            
+            // Add local stream tracks
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+            
+            // Handle remote stream
+            peerConnection.ontrack = (event) => {
+                console.log('📥 Received remote track:', event.track.kind);
+                remoteStream = event.streams[0];
+                
+                // Always set audio element for sound
+                const remoteAudio = document.getElementById('remote-audio');
+                if (remoteAudio && remoteStream) {
+                    remoteAudio.srcObject = remoteStream;
+                    console.log('🔊 Audio stream set');
+                }
+                
+                // If video track, also set video element
+                if (event.track.kind === 'video') {
+                    const remoteVideo = document.getElementById('remote-video');
+                    if (remoteVideo) {
+                        remoteVideo.srcObject = remoteStream;
+                        
+                        // Force play the video element (important for some browsers)
+                        remoteVideo.play().catch(e => console.log('Video autoplay:', e));
+                        
+                        // Show video container
+                        document.getElementById('video-container').style.display = 'block';
+                        document.getElementById('audio-view').style.display = 'none';
+                        console.log('📹 Video stream set and playing');
+                    }
                 }
             };
             
-            console.log('✅ Peer connection setup complete');
+            // Handle ICE candidates
+            peerConnection.onicecandidate = async (event) => {
+                if (event.candidate) {
+                    console.log('🧊 New ICE candidate');
+                    await sendSignal(adminId, {
+                        type: 'ice',
+                        candidate: event.candidate.toJSON(),
+                        call_id: currentCallId
+                    });
+                }
+            };
+            
+            // Handle connection state changes
+            peerConnection.onconnectionstatechange = () => {
+                console.log('Connection state:', peerConnection.connectionState);
+                
+                if (peerConnection.connectionState === 'connected') {
+                    console.log('✅ Call connected');
+                    currentCallState = 'connected';
+                    
+                    // Clear timeout since call connected
+                    if (callTimeoutTimer) {
+                        clearTimeout(callTimeoutTimer);
+                        callTimeoutTimer = null;
+                        console.log('⏰ Call timeout cleared - connected');
+                    }
+                    
+                    startCallTimer();
+                } else if (peerConnection.connectionState === 'disconnected' || 
+                           peerConnection.connectionState === 'failed') {
+                    console.log('❌ Call disconnected');
+                    hangupCall('Connection lost');
+                }
+            };
         }
 
         // ========== Signaling ==========
@@ -3392,35 +3368,25 @@
         }
 
         async function pollSignals() {
-            if (!token) {
-                console.warn('⚠️ No token - signal polling skipped');
-                return; // Not logged in
-            }
+            if (!token) return; // Not logged in
             
             try {
                 const response = await fetch(`${API_URL}/call/signals`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
-                if (!response.ok) {
-                    console.error('❌ Signal polling failed:', response.status, response.statusText);
-                    return;
-                }
-                
                 const signals = await response.json();
                 
                 if (signals && signals.length > 0) {
-                    console.log(`📡 Received ${signals.length} signal(s) - Current call state:`, currentCallState);
-                    console.log('👤 Current user ID:', currentUser?.id, 'Username:', currentUser?.username);
-                    signals.forEach(s => console.log('  - Signal type:', s.signal.type, 'from user:', s.from, 'Type:', typeof s.from));
+                    console.log(`📡 Received ${signals.length} signal(s)`);
                 }
                 
                 for (const signalData of signals) {
-                    console.log('⚙️ Processing signal from user:', signalData.from, 'Type:', signalData.signal.type);
+                    console.log('Processing signal from user:', signalData.from);
                     await handleSignal(signalData.signal, signalData.from);
                 }
             } catch (error) {
-                console.error('❌ Signal polling error:', error);
+                console.error('Signal polling error:', error);
                 // Continue polling even if there's an error
             }
         }
@@ -3430,12 +3396,9 @@
             
             // Handle incoming call (offer)
             if (signal.type === 'offer') {
-                console.log('🎯 Offer received - Current call state:', currentCallState, 'Has peer:', !!peerConnection);
-                
                 // Check if this is a renegotiation (already in call)
                 if (currentCallState === 'connected' && peerConnection) {
                     console.log('🔄 RENEGOTIATION DETECTED - Processing video offer');
-                    console.log('📝 Call ID:', currentCallId, 'From user:', fromUserId);
                     
                     try {
                         // Accept the new offer
@@ -3460,15 +3423,14 @@
                             call_id: currentCallId
                         });
                         
-                        console.log('✅ Renegotiation answer sent back to user:', fromUserId);
+                        console.log('✅ Renegotiation answer sent');
                     } catch (error) {
-                        console.error('❌ Renegotiation failed:', error);
+                        console.error('Renegotiation failed:', error);
                     }
                     return;
                 }
                 
-                // Otherwise, it's a new incoming call
-                console.log('📞 New incoming call');
+                // New incoming call
                 await handleIncomingCall(signal, fromUserId);
                 return;
             }
@@ -3480,85 +3442,26 @@
             }
             
             if (signal.type === 'answer') {
-                console.log('📥 RECEIVED ANSWER from user:', fromUserId, 'Type:', typeof fromUserId);
-                console.log('🔗 Peer connection exists:', !!peerConnection, 'State:', peerConnection?.connectionState);
-                console.log('📊 Current call state:', currentCallState);
-                console.log('📋 Call ID:', currentCallId);
-                
                 await peerConnection.setRemoteDescription(new RTCSessionDescription({
                     type: 'answer',
                     sdp: signal.sdp
                 }));
-                console.log('✅ Answer received, remote description set, call connecting...');
+                console.log('✅ Answer received, call connecting...');
                 currentCallState = 'connecting';
-                
-                // Clear timeout since other side answered
-                if (callTimeoutTimer) {
-                    clearTimeout(callTimeoutTimer);
-                    callTimeoutTimer = null;
-                    console.log('⏰ Call timeout cleared - answer received');
-                }
-                
-                // Strong UI feedback that call was answered
                 const statusEl = document.getElementById('active-call-status');
-                if (statusEl) {
-                    statusEl.textContent = '✅ Call Answered - Connecting...';
-                    statusEl.style.color = '#4caf50'; // Green color
-                    
-                    // Reset color after 2 seconds
-                    setTimeout(() => {
-                        if (statusEl.textContent.includes('Answered')) {
-                            statusEl.style.color = '';
-                            statusEl.textContent = 'Connecting...';
-                        }
-                    }, 2000);
-                }
+                if (statusEl) statusEl.textContent = 'Connecting...';
                 
-                // Play a short beep to notify user (mobile-friendly)
-                try {
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    oscillator.frequency.value = 800; // Hz
-                    oscillator.type = 'sine';
-                    
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-                    
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.2);
-                    
-                    console.log('🔔 Answer notification beep played');
-                } catch (error) {
-                    console.log('⚠️ Could not play notification sound:', error);
-                }
-                
-                // Ensure call modal is visible and bring to front (critical for mobile)
+                // Ensure call modal stays visible (for admin calling users)
                 const activeModal = document.getElementById('active-call-modal');
-                if (activeModal) {
+                if (activeModal && !activeModal.classList.contains('show')) {
                     activeModal.classList.add('show');
-                    activeModal.style.zIndex = '10000'; // Ensure it's on top
-                    console.log('📱 Call modal ensured visible for answer notification');
-                }
-                
-                // Vibrate on mobile if supported
-                if (navigator.vibrate) {
-                    navigator.vibrate([200, 100, 200]); // Vibrate pattern
-                    console.log('📳 Vibration triggered');
                 }
                 
                 // Check if already connected (sometimes state changes before we receive answer)
                 if (peerConnection.connectionState === 'connected') {
                     console.log('✅ Already connected, starting timer');
                     currentCallState = 'connected';
-                    if (statusEl) {
-                        statusEl.textContent = 'Connected';
-                        statusEl.style.color = '';
-                    }
+                    if (statusEl) statusEl.textContent = 'Connected';
                     if (!callTimerInterval) startCallTimer();
                 }
                 
@@ -3568,14 +3471,7 @@
         }
 
         function startSignalPolling() {
-            // Don't create duplicate intervals
-            if (signalPollInterval) {
-                console.log('📡 Signal polling already running');
-                return;
-            }
-            // Fast polling (300ms) for real-time signal delivery
-            signalPollInterval = setInterval(pollSignals, 300);
-            console.log('📡 Signal polling started (300ms interval)');
+            signalPollInterval = setInterval(pollSignals, 1000);
         }
 
         function stopSignalPolling() {
@@ -3588,11 +3484,9 @@
         // ========== Incoming Call ==========
         
         async function handleIncomingCall(offer, callerUserId) {
-            console.log('📞 =================================');
-            console.log('📞 INCOMING CALL from user:', callerUserId, 'Type:', typeof callerUserId);
-            console.log('👤 Current user:', currentUser?.id, currentUser?.username, 'Role:', currentUser?.role);
-            console.log('📋 Call ID:', offer.call_id);
-            console.log('📊 Current call state:', currentCallState);
+            console.log('📞 Incoming call from user:', callerUserId);
+            console.log('Current user role:', currentUser?.role);
+            console.log('Offer details:', offer);
             
             currentCallId = offer.call_id;
             currentCallState = 'ringing';
@@ -3600,171 +3494,31 @@
             // Get caller name
             let callerName = 'User';
             if (currentUser?.role === 'administrator') {
+                // Admin receiving call - get user's name if possible
                 callerName = `User ${callerUserId}`;
             }
             
-            console.log('🏷️ Caller name:', callerName);
-            
-            // Store offer for answer
-            window.pendingOffer = offer;
-            window.pendingCallerId = callerUserId;
-            console.log('💾 Stored: pendingCallerId =', window.pendingCallerId, 'Type:', typeof window.pendingCallerId);
-            
-            // Show incoming call with robust retry system
-            showIncomingCallModal(callerName);
-            
-            console.log('📞 =================================');
-        }
-        
-        /**
-         * Robust modal display with retries and multiple fallbacks
-         * Ensures incoming calls are NEVER missed
-         */
-        function showIncomingCallModal(callerName, attempt = 1) {
-            const maxAttempts = 3;
-            
-            console.log(`📢 Attempt ${attempt}/${maxAttempts} to show incoming call modal for ${callerName}`);
-            
+            // Show incoming call modal
             const modal = document.getElementById('incoming-call-modal');
             const nameEl = document.getElementById('incoming-caller-name');
             
-            // Check if elements exist
-            if (!modal || !nameEl) {
-                console.warn(`⚠️ Modal elements not ready (attempt ${attempt}/${maxAttempts})`);
-                
-                if (attempt < maxAttempts) {
-                    // Retry after 100ms
-                    setTimeout(() => showIncomingCallModal(callerName, attempt + 1), 100);
-                    return;
-                } else {
-                    // All retries failed - use fallbacks
-                    console.error('❌ Modal not available after retries - using fallbacks');
-                    useFallbackNotification(callerName);
-                    return;
-                }
-            }
+            console.log('Modal element:', modal);
+            console.log('Name element:', nameEl);
             
-            // Elements exist - show modal
-            try {
+            if (nameEl) {
                 nameEl.textContent = `${callerName} is calling...`;
+            }
+            
+            if (modal) {
                 modal.classList.add('show');
-                
-                // Force visibility (in case CSS is broken)
-                modal.style.display = 'flex';
-                modal.style.zIndex = '999999';
-                
-                // Verify it's actually visible
-                const computedStyle = window.getComputedStyle(modal);
-                if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
-                    console.warn('⚠️ Modal CSS preventing visibility - forcing display');
-                    modal.style.display = 'flex !important';
-                    modal.style.visibility = 'visible !important';
-                }
-                
-                console.log('✅ Incoming call modal shown successfully');
-                console.log('   - Display:', computedStyle.display);
-                console.log('   - Visibility:', computedStyle.visibility);
-                console.log('   - Z-index:', computedStyle.zIndex);
-                
-                // Multi-sensory alerts
-                playIncomingCallAlert();
-                
-            } catch (error) {
-                console.error('❌ Error showing modal:', error);
-                useFallbackNotification(callerName);
-            }
-        }
-        
-        /**
-         * Multi-sensory alert for incoming calls
-         */
-        function playIncomingCallAlert() {
-            // 1. Vibration (mobile)
-            if (navigator.vibrate) {
-                // Long vibration pattern for incoming call
-                navigator.vibrate([500, 200, 500, 200, 500, 200, 500]);
-                console.log('📳 Vibration triggered');
-            }
-            
-            // 2. Audio notification (beep pattern)
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.value = 880; // A5 note
-                oscillator.type = 'sine';
-                
-                // Beep pattern: beep-beep-pause-beep-beep
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.15);
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.2);
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.35);
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.6);
-                gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.75);
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.8);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.0);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 1.0);
-                
-                console.log('🔔 Incoming call sound played');
-            } catch (error) {
-                console.log('⚠️ Could not play sound:', error);
-            }
-            
-            // 3. Page title flash (if user has app in background)
-            const originalTitle = document.title;
-            let flashCount = 0;
-            const flashInterval = setInterval(() => {
-                document.title = flashCount % 2 === 0 ? '📞 INCOMING CALL!' : originalTitle;
-                flashCount++;
-                if (flashCount > 10) {
-                    clearInterval(flashInterval);
-                    document.title = originalTitle;
-                }
-            }, 500);
-        }
-        
-        /**
-         * Fallback notification methods when modal fails
-         */
-        function useFallbackNotification(callerName) {
-            console.log('🔔 Using fallback notification methods');
-            
-            // Fallback 1: Browser Notification API
-            if ('Notification' in window) {
-                if (Notification.permission === 'granted') {
-                    new Notification(`Incoming call from ${callerName}`, {
-                        body: 'Click to answer',
-                        icon: '/static/phone-icon.png',
-                        requireInteraction: true,
-                        tag: 'incoming-call',
-                        vibrate: [500, 200, 500]
-                    });
-                    console.log('✅ Browser notification shown');
-                    return;
-                } else if (Notification.permission !== 'denied') {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === 'granted') {
-                            useFallbackNotification(callerName);
-                        }
-                    });
-                }
-            }
-            
-            // Fallback 2: Alert (always works, blocks until dismissed)
-            console.log('⚠️ Using alert() as last resort');
-            const answer = confirm(`INCOMING CALL from ${callerName}\n\nClick OK to answer, Cancel to reject.`);
-            
-            if (answer) {
-                answerCall();
+                console.log('✅ Incoming call modal shown');
             } else {
-                rejectCall();
+                console.error('❌ Modal element not found!');
             }
+            
+            // Store offer
+            window.pendingOffer = offer;
+            window.pendingCallerId = callerUserId;
         }
 
         async function answerCall() {
@@ -3783,8 +3537,12 @@
                 // Get microphone permission
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 
-                // Set up peer connection - unified for all scenarios
-                await setupPeerConnection(window.pendingCallerId);
+                // Set up peer connection (admin answering, so target is the caller)
+                if (currentUser.role === 'administrator') {
+                    await setupPeerConnectionForUser(window.pendingCallerId);
+                } else {
+                    await setupPeerConnection();
+                }
                 
                 // Set remote description (offer)
                 await peerConnection.setRemoteDescription(new RTCSessionDescription({
@@ -3800,16 +3558,11 @@
                 await peerConnection.setLocalDescription(answer);
                 
                 // Send answer back
-                console.log('🎯 SENDING ANSWER TO USER:', window.pendingCallerId, 'Type:', typeof window.pendingCallerId);
-                console.log('📝 Call ID:', currentCallId);
-                console.log('👤 Current user:', currentUser?.id, currentUser?.username, 'Role:', currentUser?.role);
-                
                 await sendSignal(window.pendingCallerId, {
                     type: 'answer',
                     sdp: answer.sdp,
                     call_id: currentCallId
                 });
-                console.log('✅ Answer signal sent successfully!');
                 
                 // Update call status in backend
                 await fetch(`${API_URL}/call/answer`, {
@@ -3825,10 +3578,10 @@
                 });
                 
                 // Show active call UI
-                currentCallState = 'connecting';  // Set to connecting, not connected yet!
+                currentCallState = 'connected';
                 
                 document.getElementById('active-call-name').textContent = 'User';
-                document.getElementById('active-call-status').textContent = 'Connecting...';
+                document.getElementById('active-call-status').textContent = 'Connected';
                 document.getElementById('active-call-modal').classList.add('show');
                 
                 startCallTimer();
@@ -3929,48 +3682,43 @@
             console.log('Current video track:', videoTrack);
             
             if (videoTrack) {
-                // Video exists, toggle it
+                // Video is currently on, turn it off
                 videoTrack.enabled = !videoTrack.enabled;
                 console.log('Video track enabled:', videoTrack.enabled);
                 
                 if (videoTrack.enabled) {
-                    // Ensure local video element has stream
-                    if (!localVideo.srcObject) {
-                        localVideo.srcObject = localStream;
-                        console.log('📹 Local video srcObject set');
-                    }
                     videoContainer.style.display = 'block';
                     audioView.style.display = 'none';
+                    videoBtn.textContent = '📹';
                     videoBtn.classList.add('active');
-                    console.log('✅ Video enabled and displayed');
+                    console.log('✅ Video enabled');
                 } else {
                     videoContainer.style.display = 'none';
                     audioView.style.display = 'flex';
+                    videoBtn.textContent = '📹';
                     videoBtn.classList.remove('active');
                     console.log('Video disabled');
                 }
             } else {
-                // No video track yet, request camera permission
+                // No video track yet, request video permission
                 console.log('🎥 Requesting camera permission...');
                 showSuccess('Click "Allow" to enable your camera');
                 
                 try {
-                    // Request ONLY video, keep existing audio
-                    const videoStream = await navigator.mediaDevices.getUserMedia({ 
+                    const newStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: true, 
                         video: {
                             width: { ideal: 640, max: 1280 },
                             height: { ideal: 480, max: 720 },
-                            facingMode: 'user'
+                            facingMode: 'user'  // Front camera for mobile
                         } 
                     });
                     
                     console.log('✅ Camera permission granted');
                     
-                    // Add video track to existing stream (keep audio!)
-                    const videoTrack = videoStream.getVideoTracks()[0];
-                    localStream.addTrack(videoTrack);
-                    
-                    console.log('🎤 Audio preserved, video added');
+                    // Replace old stream with new one including video
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = newStream;
                     
                     // Update local video element
                     localVideo.srcObject = localStream;
@@ -3978,44 +3726,46 @@
                     // Replace tracks in peer connection
                     if (peerConnection) {
                         const senders = peerConnection.getSenders();
-                        const videoTrack = localStream.getVideoTracks()[0];
+                        const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
+                        const videoSender = senders.find(s => s.track && s.track.kind === 'video');
                         
-                        // Find video sender
-                        const videoSender = senders.find(s => s.track?.kind === 'video');
+                        // Replace audio track
+                        const newAudioTrack = newStream.getAudioTracks()[0];
+                        if (audioSender && newAudioTrack) {
+                            await audioSender.replaceTrack(newAudioTrack);
+                        }
                         
-                        if (videoSender) {
-                            // Replace existing video track
-                            await videoSender.replaceTrack(videoTrack);
-                            console.log('📹 Replaced existing video track');
-                        } else {
-                            // Add new video track
-                            peerConnection.addTrack(videoTrack, localStream);
-                            console.log('📹 Added new video track');
-                            
-                            // RENEGOTIATE - create new offer with video
-                            const offer = await peerConnection.createOffer({
-                                offerToReceiveAudio: true,
-                                offerToReceiveVideo: true
-                            });
-                            await peerConnection.setLocalDescription(offer);
-                            
-                            // Send new offer to peer
-                            const targetUserId = currentUser.role === 'administrator' ? window.pendingCallerId : adminId;
-                            console.log('🎯 Target user for renegotiation:', targetUserId, 'Role:', currentUser.role);
-                            console.log('📝 Call ID:', currentCallId);
-                            
-                            if (targetUserId) {
-                                const signalData = {
-                                    type: 'offer',
-                                    sdp: offer.sdp,
-                                    call_id: currentCallId
-                                };
-                                console.log('📤 Sending renegotiation offer:', signalData);
-                                
-                                await sendSignal(targetUserId, signalData);
-                                console.log('✅ Renegotiation offer sent successfully');
+                        // Add video track
+                        const newVideoTrack = newStream.getVideoTracks()[0];
+                        if (newVideoTrack) {
+                            if (videoSender) {
+                                await videoSender.replaceTrack(newVideoTrack);
+                                console.log('📹 Replaced existing video track');
                             } else {
-                                console.error('❌ No target user ID for renegotiation!');
+                                peerConnection.addTrack(newVideoTrack, localStream);
+                                console.log('📹 Added new video track');
+                                
+                                // RENEGOTIATE - create new offer with video
+                                const offer = await peerConnection.createOffer({
+                                    offerToReceiveAudio: true,
+                                    offerToReceiveVideo: true
+                                });
+                                await peerConnection.setLocalDescription(offer);
+                                
+                                // Send new offer to peer
+                                const targetUserId = currentUser.role === 'administrator' ? window.pendingCallerId : adminId;
+                                console.log('🎯 Renegotiation target:', targetUserId);
+                                
+                                if (targetUserId) {
+                                    await sendSignal(targetUserId, {
+                                        type: 'offer',
+                                        sdp: offer.sdp,
+                                        call_id: currentCallId
+                                    });
+                                    console.log('✅ Renegotiation offer sent');
+                                } else {
+                                    console.error('❌ No target user ID for renegotiation!');
+                                }
                             }
                         }
                     }
@@ -4027,77 +3777,9 @@
                     
                     console.log('✅ Video enabled and shared');
                 } catch (error) {
-                    console.error('Failed to get video:', error);
-                    showError('Camera access denied or not available');
+                    console.error('Failed to enable video:', error);
+                    showError('Failed to enable video. Please check camera permissions.');
                 }
-            }
-        }
-
-        function swapVideos() {
-            console.log('🔄 Swapping video windows');
-            
-            const localVideo = document.getElementById('local-video');
-            const remoteVideo = document.getElementById('remote-video');
-            
-            if (!localVideo || !remoteVideo) return;
-            
-            // Swap classes to swap positioning and sizing
-            const tempClass = localVideo.className;
-            localVideo.className = remoteVideo.className;
-            remoteVideo.className = tempClass;
-            
-            // Keep muted states: local always muted, remote never muted
-            localVideo.muted = true;  // Always mute your own video
-            remoteVideo.muted = false; // Never mute remote person
-            
-            console.log('✅ Video windows swapped - Local is now:', localVideo.className);
-        }
-        
-        // Toggle fullscreen on video element
-        function toggleFullscreen(videoElement) {
-            console.log('🖥️ Toggle fullscreen');
-            
-            // Check both standard and webkit fullscreen
-            const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
-            
-            if (!isFullscreen) {
-                // Enter fullscreen
-                console.log('📱 Attempting fullscreen...');
-                
-                // Try different fullscreen methods
-                if (videoElement.requestFullscreen) {
-                    videoElement.requestFullscreen().catch(err => {
-                        console.error('Fullscreen error:', err);
-                        // Fallback: Try webkit
-                        if (videoElement.webkitRequestFullscreen) {
-                            videoElement.webkitRequestFullscreen();
-                        }
-                    });
-                } else if (videoElement.webkitRequestFullscreen) { // iOS Safari
-                    videoElement.webkitRequestFullscreen();
-                } else if (videoElement.webkitEnterFullscreen) { // iOS video element specific
-                    videoElement.webkitEnterFullscreen();
-                } else if (videoElement.mozRequestFullScreen) { // Firefox
-                    videoElement.mozRequestFullScreen();
-                } else if (videoElement.msRequestFullscreen) { // IE/Edge
-                    videoElement.msRequestFullscreen();
-                } else {
-                    console.warn('⚠️ Fullscreen not supported on this device');
-                    showError('Fullscreen not supported on this device');
-                }
-                console.log('✅ Entered fullscreen');
-            } else {
-                // Exit fullscreen
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) { // Safari
-                    document.webkitExitFullscreen();
-                } else if (document.mozCancelFullScreen) { // Firefox
-                    document.mozCancelFullScreen();
-                } else if (document.msExitFullscreen) { // IE/Edge
-                    document.msExitFullscreen();
-                }
-                console.log('✅ Exited fullscreen');
             }
         }
 
@@ -4107,14 +3789,7 @@
                 callTimerInterval = null;
             }
             
-            // Clear call timeout if still active
-            if (callTimeoutTimer) {
-                clearTimeout(callTimeoutTimer);
-                callTimeoutTimer = null;
-            }
-            
-            // DON'T stop signal polling - keep it running for incoming calls!
-            // stopSignalPolling();
+            stopSignalPolling();
             
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
@@ -4134,6 +3809,12 @@
             currentCallId = null;
             currentCallState = null;
             callStartTime = null;
+            
+            // Clear call timeout if still active
+            if (callTimeoutTimer) {
+                clearTimeout(callTimeoutTimer);
+                callTimeoutTimer = null;
+            }
             
             // Reset video UI
             const videoContainer = document.getElementById('video-container');
@@ -4222,8 +3903,7 @@
             let html = '<div class="missed-calls-list">';
             
             for (const call of missedCalls) {
-                const callDate = parseTimestamp(call.call_time);
-                const time = callDate ? callDate.toLocaleString() : 'Unknown time';
+                const time = new Date(call.call_time).toLocaleString();
                 const seenClass = call.seen ? 'seen' : '';
                 
                 html += `
