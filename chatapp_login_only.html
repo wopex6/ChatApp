@@ -1611,6 +1611,68 @@
             }
         }
 
+        // ========== Device & Browser Detection ==========
+        
+        function detectDevice() {
+            const ua = navigator.userAgent;
+            const device = {
+                isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua),
+                isIOS: /iPhone|iPad|iPod/i.test(ua),
+                isAndroid: /Android/i.test(ua),
+                isChrome: /Chrome/i.test(ua) && !/Edge/i.test(ua),
+                isSafari: /Safari/i.test(ua) && !/Chrome/i.test(ua),
+                isFirefox: /Firefox/i.test(ua),
+                isEdge: /Edge/i.test(ua),
+                browser: '',
+                os: '',
+                screenWidth: window.innerWidth,
+                screenHeight: window.innerHeight,
+                orientation: window.innerWidth > window.innerHeight ? 'landscape' : 'portrait'
+            };
+            
+            // Determine browser
+            if (device.isChrome) device.browser = 'Chrome';
+            else if (device.isSafari) device.browser = 'Safari';
+            else if (device.isFirefox) device.browser = 'Firefox';
+            else if (device.isEdge) device.browser = 'Edge';
+            else device.browser = 'Unknown';
+            
+            // Determine OS
+            if (device.isIOS) device.os = 'iOS';
+            else if (device.isAndroid) device.os = 'Android';
+            else if (ua.indexOf('Win') !== -1) device.os = 'Windows';
+            else if (ua.indexOf('Mac') !== -1) device.os = 'macOS';
+            else if (ua.indexOf('Linux') !== -1) device.os = 'Linux';
+            else device.os = 'Unknown';
+            
+            return device;
+        }
+        
+        const deviceInfo = detectDevice();
+        
+        // Log device info immediately
+        console.log('\ud83d\udcf1 ========== DEVICE INFO ==========');
+        console.log('Device Type:', deviceInfo.isMobile ? 'MOBILE' : 'PC');
+        console.log('OS:', deviceInfo.os);
+        console.log('Browser:', deviceInfo.browser);
+        console.log('Screen:', `${deviceInfo.screenWidth}x${deviceInfo.screenHeight}`);
+        console.log('Orientation:', deviceInfo.orientation);
+        console.log('User Agent:', navigator.userAgent);
+        console.log('==================================\n');
+        
+        // Enhanced debug logger
+        function debugLog(category, message, data = null) {
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const deviceType = deviceInfo.isMobile ? '📱' : '🖥️';
+            const prefix = `${deviceType} [${timestamp}] [${category}]`;
+            
+            if (data) {
+                console.log(`${prefix} ${message}`, data);
+            } else {
+                console.log(`${prefix} ${message}`);
+            }
+        }
+        
         function showLogin() {
             document.getElementById('login-form').style.display = 'block';
             document.getElementById('signup-form').style.display = 'none';
@@ -3029,26 +3091,38 @@
         
         // For admin to call users
         async function callUser(userId, username) {
-            console.log(`📞 Admin calling user ${username} (ID: ${userId})...`);
+            debugLog('CALL-INIT', `========== ADMIN CALLING USER ==========`);
+            debugLog('CALL-INIT', `Target: ${username} (ID: ${userId})`);
+            debugLog('CALL-INIT', `Device: ${deviceInfo.isMobile ? 'MOBILE' : 'PC'} | ${deviceInfo.os} ${deviceInfo.browser}`);
             
             try {
                 // Check if WebRTC is supported
+                debugLog('CALL-INIT', 'Checking WebRTC support...');
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    debugLog('CALL-INIT', '❌ WebRTC NOT supported on this device');
                     showError('Voice calls are not supported in this browser');
                     return;
                 }
+                debugLog('CALL-INIT', '✅ WebRTC supported');
                 
                 // Request microphone permission
+                debugLog('CALL-INIT', 'Requesting microphone permission...');
                 try {
+                    const startTime = Date.now();
                     localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    console.log('🎤 Microphone access granted');
+                    const duration = Date.now() - startTime;
+                    debugLog('CALL-INIT', `✅ Microphone granted in ${duration}ms`);
+                    debugLog('CALL-INIT', `Audio tracks: ${localStream.getAudioTracks().length}`, localStream.getAudioTracks()[0]?.getSettings());
                 } catch (error) {
+                    debugLog('CALL-INIT', '❌ Microphone permission DENIED', error);
                     showError('Microphone permission denied. Please enable microphone access.');
                     console.error('Microphone error:', error);
                     return;
                 }
                 
                 // Initiate call via API
+                debugLog('CALL-INIT', 'Calling backend API /call/initiate...');
+                const apiStartTime = Date.now();
                 const response = await fetch(`${API_URL}/call/initiate`, {
                     method: 'POST',
                     headers: {
@@ -3059,12 +3133,16 @@
                 });
                 
                 const data = await response.json();
+                const apiDuration = Date.now() - apiStartTime;
+                debugLog('CALL-INIT', `API response in ${apiDuration}ms:`, data);
                 
                 if (!data.success) {
                     // User is offline
+                    debugLog('CALL-INIT', `❌ Call initiation failed: ${data.reason}`);
                     if (localStream) {
                         localStream.getTracks().forEach(track => track.stop());
                         localStream = null;
+                        debugLog('CALL-INIT', 'Local stream cleaned up');
                     }
                     
                     if (data.reason === 'offline') {
@@ -3079,40 +3157,55 @@
                 // Call initiated successfully
                 currentCallId = data.call_id;
                 currentCallState = 'calling';
+                debugLog('CALL-INIT', `✅ Call initiated! Call ID: ${currentCallId}`);
+                debugLog('CALL-INIT', `State: ${currentCallState}`);
                 
                 // Show calling UI
+                debugLog('CALL-INIT', 'Showing calling UI...');
                 document.getElementById('active-call-name').textContent = username;
                 document.getElementById('active-call-status').textContent = 'Calling...';
                 document.getElementById('call-timer').textContent = '00:00';
                 document.getElementById('active-call-modal').classList.add('show');
+                debugLog('CALL-INIT', '✅ Calling UI displayed');
                 
                 // Set up WebRTC with user (not admin)
+                debugLog('CALL-INIT', `Setting up peer connection with userId: ${userId}...`);
                 await setupPeerConnection(userId);
                 
                 // Create and send offer (include video constraint even if not enabled yet)
+                debugLog('CALL-INIT', 'Creating WebRTC offer...');
+                const offerStartTime = Date.now();
                 const offer = await peerConnection.createOffer({
                     offerToReceiveAudio: true,
                     offerToReceiveVideo: true
                 });
                 await peerConnection.setLocalDescription(offer);
+                const offerDuration = Date.now() - offerStartTime;
+                debugLog('CALL-INIT', `✅ Offer created in ${offerDuration}ms`);
+                debugLog('CALL-INIT', `SDP type: ${offer.type}, length: ${offer.sdp.length}`);
                 
                 // Send offer via signaling
+                debugLog('CALL-INIT', `Sending offer to userId: ${userId}...`);
                 await sendSignal(userId, {
                     type: 'offer',
                     sdp: offer.sdp,
                     call_id: currentCallId
                 });
+                debugLog('CALL-INIT', '✅ Offer sent via signaling');
                 
                 // Start polling for signals
+                debugLog('CALL-INIT', 'Starting signal polling...');
                 startSignalPolling();
                 
                 // Set timeout and store it
                 callTimeoutTimer = setTimeout(() => {
                     if (currentCallState === 'calling') {
-                        console.log('⏰ Call timeout - no answer');
+                        debugLog('CALL-INIT', '⏰ Call timeout - no answer after 30s');
                         hangupCall('No answer');
                     }
                 }, 30000);
+                debugLog('CALL-INIT', '✅ 30s timeout set');
+                debugLog('CALL-INIT', '========================================');
                 
             } catch (error) {
                 console.error('Call initiation failed:', error);
@@ -3126,10 +3219,14 @@
         }
         
         async function initiateCall() {
-            console.log('📞 Initiating call to admin...');
+            debugLog('CALL-INIT', '========== USER CALLING ADMIN ==========');
+            debugLog('CALL-INIT', `Device: ${deviceInfo.isMobile ? 'MOBILE' : 'PC'} | ${deviceInfo.os} ${deviceInfo.browser}`);
             
             const callBtn = document.getElementById('call-admin-btn');
-            if (callBtn) callBtn.disabled = true;
+            if (callBtn) {
+                callBtn.disabled = true;
+                debugLog('CALL-INIT', 'Call button disabled');
+            }
             
             try {
                 // Check if WebRTC is supported
@@ -3139,7 +3236,9 @@
                 }
                 
                 // Get admin ID
+                debugLog('CALL-INIT', `Admin ID: ${adminId}`);
                 if (!adminId) {
+                    debugLog('CALL-INIT', '❌ Admin ID not found!');
                     showError('Admin ID not found');
                     return;
                 }
@@ -3244,7 +3343,9 @@
          * @param {number} remoteUserId - ID of the user we're calling/answering
          */
         async function setupPeerConnection(remoteUserId) {
-            console.log('🔧 Setting up peer connection with user:', remoteUserId);
+            debugLog('WEBRTC', '========== SETUP PEER CONNECTION ==========');
+            debugLog('WEBRTC', `Remote User ID: ${remoteUserId}`);
+            debugLog('WEBRTC', `Device: ${deviceInfo.isMobile ? 'MOBILE' : 'PC'} | ${deviceInfo.os} ${deviceInfo.browser}`);
             
             const configuration = {
                 iceServers: [
@@ -3255,29 +3356,37 @@
                     { urls: 'stun:stun4.l.google.com:19302' }
                 ]
             };
+            debugLog('WEBRTC', `ICE servers configured: ${configuration.iceServers.length}`);
             
             peerConnection = new RTCPeerConnection(configuration);
+            debugLog('WEBRTC', '✅ RTCPeerConnection created');
             
             // Add local stream tracks
             if (localStream) {
-                localStream.getTracks().forEach(track => {
+                const tracks = localStream.getTracks();
+                debugLog('WEBRTC', `Adding ${tracks.length} local tracks...`);
+                tracks.forEach(track => {
                     peerConnection.addTrack(track, localStream);
-                    console.log('➕ Added local track:', track.kind);
+                    debugLog('WEBRTC', `➕ Added ${track.kind} track (enabled: ${track.enabled}, muted: ${track.muted})`);
                 });
             } else {
-                console.warn('⚠️ No local stream when setting up peer connection');
+                debugLog('WEBRTC', '⚠️ WARNING: No local stream when setting up peer connection');
             }
             
             // Handle remote stream
             peerConnection.ontrack = (event) => {
-                console.log('📥 Received remote track:', event.track.kind);
+                debugLog('WEBRTC', `📥 Received remote ${event.track.kind} track`);
+                debugLog('WEBRTC', `Track state: readyState=${event.track.readyState}, enabled=${event.track.enabled}`);
                 remoteStream = event.streams[0];
+                debugLog('WEBRTC', `Remote stream ID: ${remoteStream.id}, tracks: ${remoteStream.getTracks().length}`);
                 
                 // Always set audio element for sound
                 const remoteAudio = document.getElementById('remote-audio');
                 if (remoteAudio && remoteStream) {
                     remoteAudio.srcObject = remoteStream;
-                    console.log('🔊 Audio stream set');
+                    debugLog('WEBRTC', '🔊 Audio stream set to remote-audio element');
+                } else {
+                    debugLog('WEBRTC', '⚠️ Remote audio element not found or no stream');
                 }
                 
                 // If video track, also set video element
@@ -3285,45 +3394,67 @@
                     const remoteVideo = document.getElementById('remote-video');
                     if (remoteVideo) {
                         remoteVideo.srcObject = remoteStream;
+                        debugLog('WEBRTC', '📹 Video stream set to remote-video element');
                         
                         // Force play the video element (important for some browsers)
-                        remoteVideo.play().catch(e => console.log('Video autoplay:', e));
+                        remoteVideo.play().then(() => {
+                            debugLog('WEBRTC', '✅ Remote video playing');
+                        }).catch(e => {
+                            debugLog('WEBRTC', `⚠️ Video autoplay failed: ${e.message}`);
+                        });
                         
                         // Show video container
                         document.getElementById('video-container').style.display = 'block';
                         document.getElementById('audio-view').style.display = 'none';
-                        console.log('📹 Video stream set and playing');
+                        debugLog('WEBRTC', 'Video container shown, audio view hidden');
+                    } else {
+                        debugLog('WEBRTC', '⚠️ Remote video element not found');
                     }
                 }
             };
             
             // Handle ICE candidates - Works for both directions
+            let iceCount = 0;
             peerConnection.onicecandidate = async (event) => {
                 if (event.candidate) {
-                    console.log('🧊 New ICE candidate for user:', remoteUserId);
+                    iceCount++;
+                    debugLog('WEBRTC', `🧊 ICE candidate #${iceCount} for user ${remoteUserId}`);
+                    debugLog('WEBRTC', `Type: ${event.candidate.type}, Protocol: ${event.candidate.protocol}, Address: ${event.candidate.address || 'N/A'}`);
                     await sendSignal(remoteUserId, {
                         type: 'ice',
                         candidate: event.candidate.toJSON(),
                         call_id: currentCallId
                     });
+                } else {
+                    debugLog('WEBRTC', `✅ ICE gathering complete. Total candidates: ${iceCount}`);
                 }
             };
             
             // Handle ICE connection state changes
             peerConnection.oniceconnectionstatechange = () => {
-                console.log('🧊 ICE connection state:', peerConnection.iceConnectionState);
+                debugLog('WEBRTC', `🧊 ICE connection state changed: ${peerConnection.iceConnectionState}`);
+                debugLog('WEBRTC', `ICE gathering state: ${peerConnection.iceGatheringState}`);
+                
                 if (peerConnection.iceConnectionState === 'failed') {
-                    console.error('❌ ICE connection failed - attempting restart');
+                    debugLog('WEBRTC', '❌ ICE connection FAILED - attempting restart');
                     peerConnection.restartIce();
+                } else if (peerConnection.iceConnectionState === 'disconnected') {
+                    debugLog('WEBRTC', '⚠️ ICE connection DISCONNECTED - waiting for reconnection');
+                } else if (peerConnection.iceConnectionState === 'connected') {
+                    debugLog('WEBRTC', '✅ ICE connection CONNECTED');
+                } else if (peerConnection.iceConnectionState === 'checking') {
+                    debugLog('WEBRTC', '🔍 ICE connection CHECKING');
                 }
             };
             
             // Handle connection state changes
             peerConnection.onconnectionstatechange = () => {
-                console.log('🔌 Connection state:', peerConnection.connectionState);
+                debugLog('WEBRTC', `🔌 Connection state changed: ${peerConnection.connectionState}`);
+                debugLog('WEBRTC', `Signaling state: ${peerConnection.signalingState}`);
                 
                 if (peerConnection.connectionState === 'connected') {
-                    console.log('✅ Call connected with user:', remoteUserId);
+                    debugLog('WEBRTC', `✅ CALL CONNECTED with user: ${remoteUserId}`);
+                    debugLog('WEBRTC', `Device: ${deviceInfo.isMobile ? 'MOBILE' : 'PC'}`);
                     currentCallState = 'connected';
                     
                     // Clear timeout since call connected
@@ -3588,14 +3719,17 @@
         // ========== Incoming Call ==========
         
         async function handleIncomingCall(offer, callerUserId) {
-            console.log('📞 =================================');
-            console.log('📞 INCOMING CALL from user:', callerUserId, 'Type:', typeof callerUserId);
-            console.log('👤 Current user:', currentUser?.id, currentUser?.username, 'Role:', currentUser?.role);
-            console.log('📋 Call ID:', offer.call_id);
-            console.log('📊 Current call state:', currentCallState);
+            debugLog('CALL-RECEIVE', '========== INCOMING CALL ==========');
+            debugLog('CALL-RECEIVE', `Device: ${deviceInfo.isMobile ? 'MOBILE' : 'PC'} | ${deviceInfo.os} ${deviceInfo.browser}`);
+            debugLog('CALL-RECEIVE', `From user: ${callerUserId} (type: ${typeof callerUserId})`);
+            debugLog('CALL-RECEIVE', `Current user: ${currentUser?.id} (${currentUser?.username}) Role: ${currentUser?.role}`);
+            debugLog('CALL-RECEIVE', `Call ID: ${offer.call_id}`);
+            debugLog('CALL-RECEIVE', `Current state: ${currentCallState}`);
+            debugLog('CALL-RECEIVE', `Screen: ${window.innerWidth}x${window.innerHeight}`);
             
             currentCallId = offer.call_id;
             currentCallState = 'ringing';
+            debugLog('CALL-RECEIVE', 'State changed to: ringing');
             
             // Get caller name
             let callerName = 'User';
@@ -3623,22 +3757,26 @@
         function showIncomingCallModal(callerName, attempt = 1) {
             const maxAttempts = 3;
             
-            console.log(`📢 Attempt ${attempt}/${maxAttempts} to show incoming call modal for ${callerName}`);
+            debugLog('MODAL', `Attempt ${attempt}/${maxAttempts} to show incoming call modal`);
+            debugLog('MODAL', `Caller: ${callerName} | Device: ${deviceInfo.isMobile ? 'MOBILE' : 'PC'}`);
             
             const modal = document.getElementById('incoming-call-modal');
             const nameEl = document.getElementById('incoming-caller-name');
             
+            debugLog('MODAL', `Modal element: ${!!modal}, Name element: ${!!nameEl}`);
+            
             // Check if elements exist
             if (!modal || !nameEl) {
-                console.warn(`⚠️ Modal elements not ready (attempt ${attempt}/${maxAttempts})`);
+                debugLog('MODAL', `⚠️ Modal elements not ready (attempt ${attempt}/${maxAttempts})`);
                 
                 if (attempt < maxAttempts) {
                     // Retry after 100ms
+                    debugLog('MODAL', `Retrying in 100ms...`);
                     setTimeout(() => showIncomingCallModal(callerName, attempt + 1), 100);
                     return;
                 } else {
                     // All retries failed - use fallbacks
-                    console.error('❌ Modal not available after retries - using fallbacks');
+                    debugLog('MODAL', '❌ Modal not available after retries - using fallbacks');
                     useFallbackNotification(callerName);
                     return;
                 }
@@ -3646,27 +3784,36 @@
             
             // Elements exist - show modal
             try {
+                debugLog('MODAL', `Setting caller name: "${callerName} is calling..."`);
                 nameEl.textContent = `${callerName} is calling...`;
+                
+                debugLog('MODAL', 'Adding "show" class...');
                 modal.classList.add('show');
                 
                 // Force visibility (in case CSS is broken)
+                debugLog('MODAL', 'Setting inline styles for visibility...');
                 modal.style.display = 'flex';
                 modal.style.zIndex = '999999';
                 
                 // Verify it's actually visible
                 const computedStyle = window.getComputedStyle(modal);
+                debugLog('MODAL', `Computed style - display: ${computedStyle.display}, visibility: ${computedStyle.visibility}, z-index: ${computedStyle.zIndex}`);
+                
                 if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
-                    console.warn('⚠️ Modal CSS preventing visibility - forcing display');
+                    debugLog('MODAL', '⚠️ Modal CSS preventing visibility - forcing display');
                     modal.style.display = 'flex !important';
                     modal.style.visibility = 'visible !important';
                 }
                 
-                console.log('✅ Incoming call modal shown successfully');
-                console.log('   - Display:', computedStyle.display);
-                console.log('   - Visibility:', computedStyle.visibility);
-                console.log('   - Z-index:', computedStyle.zIndex);
+                // Check modal position
+                const rect = modal.getBoundingClientRect();
+                debugLog('MODAL', `Modal position: top=${rect.top}, left=${rect.left}, width=${rect.width}, height=${rect.height}`);
+                debugLog('MODAL', `Modal in viewport: ${rect.top >= 0 && rect.left >= 0 && rect.bottom <= window.innerHeight && rect.right <= window.innerWidth}`);
+                
+                debugLog('MODAL', '✅ Incoming call modal shown successfully');
                 
                 // Multi-sensory alerts
+                debugLog('MODAL', 'Playing alert sounds and vibration...');
                 playIncomingCallAlert();
                 
             } catch (error) {
@@ -3769,55 +3916,74 @@
 
         // Make functions globally accessible for onclick handlers
         window.answerCall = async function() {
-            console.log('✅ Answering call...');
-            console.log('🎯 Answer button pressed');
+            debugLog('CALL-ANSWER', '========== ANSWERING CALL ==========');
+            debugLog('CALL-ANSWER', `Device: ${deviceInfo.isMobile ? 'MOBILE' : 'PC'} | ${deviceInfo.os} ${deviceInfo.browser}`);
+            debugLog('CALL-ANSWER', `Button clicked! pendingCallerId: ${window.pendingCallerId}`);
+            debugLog('CALL-ANSWER', `Call ID: ${currentCallId}, State: ${currentCallState}`);
             
             // Clear any existing timeout
             if (callTimeoutTimer) {
                 clearTimeout(callTimeoutTimer);
                 callTimeoutTimer = null;
+                debugLog('CALL-ANSWER', 'Cleared call timeout');
             }
             
             // Hide incoming call modal (remove class AND clear inline styles)
+            debugLog('CALL-ANSWER', 'Hiding incoming call modal...');
             const incomingModal = document.getElementById('incoming-call-modal');
             if (incomingModal) {
+                const wasVisible = incomingModal.classList.contains('show');
                 incomingModal.classList.remove('show');
                 incomingModal.style.display = 'none'; // Clear forced inline style
                 incomingModal.style.zIndex = ''; // Reset z-index
-                console.log('✅ Incoming call modal hidden');
+                debugLog('CALL-ANSWER', `✅ Modal hidden (was visible: ${wasVisible})`);
+            } else {
+                debugLog('CALL-ANSWER', '⚠️ Incoming modal not found!');
             }
             
             try {
                 // Get microphone permission
+                debugLog('CALL-ANSWER', 'Requesting microphone permission...');
+                const micStartTime = Date.now();
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const micDuration = Date.now() - micStartTime;
+                debugLog('CALL-ANSWER', `✅ Microphone granted in ${micDuration}ms`);
+                debugLog('CALL-ANSWER', `Audio tracks: ${localStream.getAudioTracks().length}`);
                 
                 // Set up peer connection - unified for all scenarios
+                debugLog('CALL-ANSWER', `Setting up peer connection with ${window.pendingCallerId}...`);
                 await setupPeerConnection(window.pendingCallerId);
                 
                 // Set remote description (offer)
+                debugLog('CALL-ANSWER', 'Setting remote description (offer)...');
                 await peerConnection.setRemoteDescription(new RTCSessionDescription({
                     type: 'offer',
                     sdp: window.pendingOffer.sdp
                 }));
+                debugLog('CALL-ANSWER', '✅ Remote description set');
                 
                 // Create answer (with video support)
+                debugLog('CALL-ANSWER', 'Creating answer...');
+                const answerStartTime = Date.now();
                 const answer = await peerConnection.createAnswer({
                     offerToReceiveAudio: true,
                     offerToReceiveVideo: true
                 });
                 await peerConnection.setLocalDescription(answer);
+                const answerDuration = Date.now() - answerStartTime;
+                debugLog('CALL-ANSWER', `✅ Answer created in ${answerDuration}ms`);
                 
                 // Send answer back
-                console.log('🎯 SENDING ANSWER TO USER:', window.pendingCallerId, 'Type:', typeof window.pendingCallerId);
-                console.log('📝 Call ID:', currentCallId);
-                console.log('👤 Current user:', currentUser?.id, currentUser?.username, 'Role:', currentUser?.role);
+                debugLog('CALL-ANSWER', `Sending answer to: ${window.pendingCallerId}`);
+                debugLog('CALL-ANSWER', `Call ID: ${currentCallId}`);
+                debugLog('CALL-ANSWER', `Current user: ${currentUser?.id} (${currentUser?.username}) Role: ${currentUser?.role}`);
                 
                 await sendSignal(window.pendingCallerId, {
                     type: 'answer',
                     sdp: answer.sdp,
                     call_id: currentCallId
                 });
-                console.log('✅ Answer signal sent successfully!');
+                debugLog('CALL-ANSWER', '✅ Answer signal sent successfully!');
                 
                 // Update call status in backend
                 await fetch(`${API_URL}/call/answer`, {
