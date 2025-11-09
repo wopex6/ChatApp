@@ -3767,8 +3767,10 @@
             }
         }
 
-        async function answerCall() {
+        // Make functions globally accessible for onclick handlers
+        window.answerCall = async function() {
             console.log('✅ Answering call...');
+            console.log('🎯 Answer button pressed');
             
             // Clear any existing timeout
             if (callTimeoutTimer) {
@@ -3776,8 +3778,14 @@
                 callTimeoutTimer = null;
             }
             
-            // Hide incoming call modal
-            document.getElementById('incoming-call-modal').classList.remove('show');
+            // Hide incoming call modal (remove class AND clear inline styles)
+            const incomingModal = document.getElementById('incoming-call-modal');
+            if (incomingModal) {
+                incomingModal.classList.remove('show');
+                incomingModal.style.display = 'none'; // Clear forced inline style
+                incomingModal.style.zIndex = ''; // Reset z-index
+                console.log('✅ Incoming call modal hidden');
+            }
             
             try {
                 // Get microphone permission
@@ -3827,9 +3835,27 @@
                 // Show active call UI
                 currentCallState = 'connecting';  // Set to connecting, not connected yet!
                 
-                document.getElementById('active-call-name').textContent = 'User';
+                // Get caller name
+                let callerName = 'User';
+                if (currentUser?.role === 'administrator') {
+                    // Admin answering user call
+                    callerName = `User ${window.pendingCallerId}`;
+                } else {
+                    // User answering admin call
+                    callerName = 'Admin';
+                }
+                
+                document.getElementById('active-call-name').textContent = callerName;
                 document.getElementById('active-call-status').textContent = 'Connecting...';
-                document.getElementById('active-call-modal').classList.add('show');
+                
+                // Ensure active call modal is visible
+                const activeModal = document.getElementById('active-call-modal');
+                if (activeModal) {
+                    activeModal.classList.add('show');
+                    activeModal.style.display = 'flex';
+                    activeModal.style.zIndex = '10000';
+                    console.log('✅ Active call modal shown');
+                }
                 
                 startCallTimer();
                 startSignalPolling();
@@ -3841,10 +3867,16 @@
             }
         }
 
-        async function rejectCall() {
+        window.rejectCall = async function() {
             console.log('❌ Rejecting call');
             
-            document.getElementById('incoming-call-modal').classList.remove('show');
+            // Hide incoming call modal properly
+            const incomingModal = document.getElementById('incoming-call-modal');
+            if (incomingModal) {
+                incomingModal.classList.remove('show');
+                incomingModal.style.display = 'none';
+                incomingModal.style.zIndex = '';
+            }
             
             if (currentCallId) {
                 await fetch(`${API_URL}/call/reject`, {
@@ -3862,7 +3894,7 @@
 
         // ========== Call Controls ==========
         
-        async function hangupCall(reason = 'Call ended') {
+        window.hangupCall = async function(reason = 'Call ended') {
             console.log('📴 Hanging up call:', reason);
             
             const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
@@ -3881,8 +3913,20 @@
                 });
             }
             
-            document.getElementById('active-call-modal').classList.remove('show');
-            document.getElementById('incoming-call-modal').classList.remove('show');
+            // Hide both modals properly (clear classes AND inline styles)
+            const activeModal = document.getElementById('active-call-modal');
+            if (activeModal) {
+                activeModal.classList.remove('show');
+                activeModal.style.display = 'none';
+                activeModal.style.zIndex = '';
+            }
+            
+            const incomingModal = document.getElementById('incoming-call-modal');
+            if (incomingModal) {
+                incomingModal.classList.remove('show');
+                incomingModal.style.display = 'none';
+                incomingModal.style.zIndex = '';
+            }
             
             if (reason && reason !== 'Call ended') {
                 showError(reason);
@@ -3894,7 +3938,7 @@
             if (callBtn) callBtn.disabled = false;
         }
 
-        function toggleMute() {
+        window.toggleMute = function() {
             if (!localStream) return;
             
             const audioTrack = localStream.getAudioTracks()[0];
@@ -3912,7 +3956,7 @@
             }
         }
 
-        async function toggleVideo() {
+        window.toggleVideo = async function() {
             console.log('📹 Toggle video clicked');
             
             if (!localStream) {
