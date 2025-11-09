@@ -1991,9 +1991,25 @@
                         formatTimestamp(user.last_message_time) : 
                         '<span style="color: #999; font-size: 11px;">New user</span>';
                     
+                    // Status indicator
+                    let statusClass, statusDot;
+                    if (user.status === 'online') {
+                        statusClass = 'status-online';
+                        statusDot = 'dot-online';
+                    } else if (user.status === 'in_call') {
+                        statusClass = 'status-in-call';
+                        statusDot = 'dot-in-call';
+                    } else {
+                        statusClass = 'status-offline';
+                        statusDot = 'dot-offline';
+                    }
+                    
                     userDiv.innerHTML = `
                         <div class="user-info">
-                            <div class="user-name">${user.username}</div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span class="status-dot ${statusDot}"></span>
+                                <div class="user-name">${user.username}</div>
+                            </div>
                             <div class="last-message-time">${timeDisplay}</div>
                         </div>
                         ${unreadBadge}
@@ -3106,8 +3122,8 @@
             updateMyStatus('offline');
         }
 
-        async function updateStatusIndicator(userId) {
-            const status = await getUserStatus(userId);
+        function updateStatusIndicator(userId) {
+            const status = getUserStatus(userId);
             const indicator = document.getElementById('admin-status-indicator');
             
             if (!indicator) return;
@@ -3853,6 +3869,10 @@
                 void modal.offsetHeight; // Trigger reflow
                 
                 debugLog('MODAL', 'Modal reset complete - all styles cleared');
+                
+                // Small delay to ensure reset is processed before showing
+                // This is critical for 2nd+ calls
+                return setTimeout(() => showIncomingCallModal(callerName, 2), 50);
             }
             
             // Check if elements exist
