@@ -3637,7 +3637,8 @@
                 console.log('🎯 Offer received - Current call state:', currentCallState, 'Has peer:', !!peerConnection);
                 
                 // Check if this is a renegotiation (already in call)
-                if (currentCallState === 'connected' && peerConnection) {
+                // CRITICAL: Check for ANY active call state (calling, connecting, connected) to prevent modal from showing during video enable
+                if ((currentCallState === 'calling' || currentCallState === 'connecting' || currentCallState === 'connected') && peerConnection) {
                     console.log('🔄 RENEGOTIATION DETECTED - Processing video offer');
                     console.log('📝 Call ID:', currentCallId, 'From user:', fromUserId);
                     
@@ -3809,10 +3810,11 @@
             debugLog('CALL-RECEIVE', `Current user: ${currentUser?.id} (${currentUser?.username}) Role: ${currentUser?.role}`);
             debugLog('CALL-RECEIVE', `Call ID: ${offer.call_id}`);
             debugLog('CALL-RECEIVE', `Current state BEFORE: ${currentCallState}`);
+            debugLog('CALL-RECEIVE', `Has peerConnection: ${!!peerConnection}`);
             debugLog('CALL-RECEIVE', `Screen: ${window.innerWidth}x${window.innerHeight}`);
             
             // If already in a call, reject this incoming call
-            if (currentCallState === 'connected' || currentCallState === 'calling') {
+            if (currentCallState === 'connected' || currentCallState === 'calling' || currentCallState === 'connecting') {
                 debugLog('CALL-RECEIVE', `⚠️ Already in a call (state: ${currentCallState}), rejecting incoming call`);
                 return;
             }
@@ -3856,23 +3858,26 @@
             
             debugLog('MODAL', `Modal element: ${!!modal}, Name element: ${!!nameEl}`);
             
-            // Reset modal state first (in case it's still set from previous call)
-            if (modal && attempt === 1) {
-                debugLog('MODAL', 'Resetting modal state from previous call...');
-                debugLog('MODAL', `Current state - display: ${modal.style.display}, classList: ${modal.className}`);
-                
-                // Force complete reset
-                modal.classList.remove('show');
-                modal.removeAttribute('style'); // Remove ALL inline styles
-                
-                // Force browser to process the reset
-                void modal.offsetHeight; // Trigger reflow
-                
-                debugLog('MODAL', 'Modal reset complete - all styles cleared');
+            // CRITICAL: Always reset modal on FIRST incoming call, not just attempt 1
+            // This ensures 2nd+ calls work even if modal state is stale
+            if (attempt === 1) {
+                if (modal) {
+                    debugLog('MODAL', 'Resetting modal state from previous call...');
+                    debugLog('MODAL', `Current state - display: ${modal.style.display}, classList: ${modal.className}`);
+                    
+                    // Force complete reset
+                    modal.classList.remove('show');
+                    modal.removeAttribute('style'); // Remove ALL inline styles
+                    
+                    // Force browser to process the reset
+                    void modal.offsetHeight; // Trigger reflow
+                    
+                    debugLog('MODAL', 'Modal reset complete - all styles cleared');
+                }
                 
                 // Small delay to ensure reset is processed before showing
                 // This is critical for 2nd+ calls
-                return setTimeout(() => showIncomingCallModal(callerName, 2), 50);
+                return setTimeout(() => showIncomingCallModal(callerName, 2), 100);
             }
             
             // Check if elements exist
@@ -3893,6 +3898,7 @@
             }
             
             // Elements exist - show modal
+            debugLog('MODAL', `✅ Modal elements ready on attempt ${attempt}, proceeding to show...`);
             try {
                 debugLog('MODAL', `Setting caller name: "${callerName} is calling..."`);
                 nameEl.textContent = `${callerName} is calling...`;
