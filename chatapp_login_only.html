@@ -1347,8 +1347,8 @@
         <div class="call-modal-content">
             <!-- Video Container -->
             <div id="video-container" class="video-container" style="display: none;">
-                <video id="remote-video" class="remote-video" autoplay playsinline></video>
-                <video id="local-video" class="local-video" autoplay playsinline muted></video>
+                <video id="remote-video" class="remote-video" autoplay playsinline onclick="swapVideos()" style="cursor: pointer;" title="Tap to swap"></video>
+                <video id="local-video" class="local-video" autoplay playsinline muted onclick="swapVideos()" style="cursor: pointer;" title="Tap to swap"></video>
             </div>
             
             <!-- Audio/Avatar View -->
@@ -3588,8 +3588,8 @@
                 showSuccess('Click "Allow" to enable your camera');
                 
                 try {
-                    const newStream = await navigator.mediaDevices.getUserMedia({ 
-                        audio: true, 
+                    // Request ONLY video, keep existing audio
+                    const videoStream = await navigator.mediaDevices.getUserMedia({ 
                         video: {
                             width: { ideal: 640, max: 1280 },
                             height: { ideal: 480, max: 720 },
@@ -3599,9 +3599,11 @@
                     
                     console.log('✅ Camera permission granted');
                     
-                    // Replace old stream with new one including video
-                    localStream.getTracks().forEach(track => track.stop());
-                    localStream = newStream;
+                    // Add video track to existing stream (keep audio!)
+                    const videoTrack = videoStream.getVideoTracks()[0];
+                    localStream.addTrack(videoTrack);
+                    
+                    console.log('🎤 Audio preserved, video added');
                     
                     // Update local video element
                     localVideo.srcObject = localStream;
@@ -3659,6 +3661,26 @@
                     showError('Camera access denied or not available');
                 }
             }
+        }
+
+        function swapVideos() {
+            console.log('🔄 Swapping video windows');
+            
+            const localVideo = document.getElementById('local-video');
+            const remoteVideo = document.getElementById('remote-video');
+            
+            if (!localVideo || !remoteVideo) return;
+            
+            // Swap classes to swap positioning and sizing
+            const tempClass = localVideo.className;
+            localVideo.className = remoteVideo.className;
+            remoteVideo.className = tempClass;
+            
+            // Keep muted states: local always muted, remote never muted
+            localVideo.muted = true;  // Always mute your own video
+            remoteVideo.muted = false; // Never mute remote person
+            
+            console.log('✅ Video windows swapped - Local is now:', localVideo.className);
         }
 
         function cleanupCall() {
