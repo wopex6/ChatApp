@@ -3024,8 +3024,11 @@
                 // Set up WebRTC with user (not admin)
                 await setupPeerConnectionForUser(userId);
                 
-                // Create and send offer
-                const offer = await peerConnection.createOffer();
+                // Create and send offer (include video constraint)
+                const offer = await peerConnection.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
                 await peerConnection.setLocalDescription(offer);
                 
                 // Send offer via signaling
@@ -3126,8 +3129,11 @@
                 // Set up WebRTC
                 await setupPeerConnection();
                 
-                // Create and send offer
-                const offer = await peerConnection.createOffer();
+                // Create and send offer (include video constraint)
+                const offer = await peerConnection.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
                 await peerConnection.setLocalDescription(offer);
                 
                 // Send offer via signaling
@@ -3195,10 +3201,14 @@
                     const remoteVideo = document.getElementById('remote-video');
                     if (remoteVideo) {
                         remoteVideo.srcObject = remoteStream;
+                        
+                        // Force play the video element (important for some browsers)
+                        remoteVideo.play().catch(e => console.log('Video autoplay:', e));
+                        
                         // Show video container
                         document.getElementById('video-container').style.display = 'block';
                         document.getElementById('audio-view').style.display = 'none';
-                        console.log('📹 Video stream set');
+                        console.log('📹 Video stream set and playing');
                     }
                 }
             };
@@ -3289,10 +3299,14 @@
                     const remoteVideo = document.getElementById('remote-video');
                     if (remoteVideo) {
                         remoteVideo.srcObject = remoteStream;
+                        
+                        // Force play the video element (important for some browsers)
+                        remoteVideo.play().catch(e => console.log('Video autoplay:', e));
+                        
                         // Show video container
                         document.getElementById('video-container').style.display = 'block';
                         document.getElementById('audio-view').style.display = 'none';
-                        console.log('📹 Video stream set');
+                        console.log('📹 Video stream set and playing');
                     }
                 }
             };
@@ -3380,8 +3394,43 @@
         async function handleSignal(signal, fromUserId) {
             console.log('📨 Received signal:', signal.type);
             
-            // Handle incoming call (offer) even without peer connection
+            // Handle incoming call (offer)
             if (signal.type === 'offer') {
+                // Check if this is a renegotiation (already in call)
+                if (currentCallState === 'connected' && peerConnection) {
+                    console.log('🔄 RENEGOTIATION DETECTED - Processing video offer');
+                    
+                    try {
+                        // Accept the new offer
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription({
+                            type: 'offer',
+                            sdp: signal.sdp
+                        }));
+                        console.log('✅ Remote description set');
+                        
+                        // Create answer (with video support)
+                        const answer = await peerConnection.createAnswer({
+                            offerToReceiveAudio: true,
+                            offerToReceiveVideo: true
+                        });
+                        await peerConnection.setLocalDescription(answer);
+                        console.log('✅ Local description set');
+                        
+                        // Send answer back
+                        await sendSignal(fromUserId, {
+                            type: 'answer',
+                            sdp: answer.sdp,
+                            call_id: currentCallId
+                        });
+                        
+                        console.log('✅ Renegotiation answer sent');
+                    } catch (error) {
+                        console.error('Renegotiation failed:', error);
+                    }
+                    return;
+                }
+                
+                // New incoming call
                 await handleIncomingCall(signal, fromUserId);
                 return;
             }
@@ -3501,8 +3550,11 @@
                     sdp: window.pendingOffer.sdp
                 }));
                 
-                // Create answer
-                const answer = await peerConnection.createAnswer();
+                // Create answer (with video support)
+                const answer = await peerConnection.createAnswer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
                 await peerConnection.setLocalDescription(answer);
                 
                 // Send answer back
@@ -3688,8 +3740,32 @@
                         if (newVideoTrack) {
                             if (videoSender) {
                                 await videoSender.replaceTrack(newVideoTrack);
+                                console.log('📹 Replaced existing video track');
                             } else {
                                 peerConnection.addTrack(newVideoTrack, localStream);
+                                console.log('📹 Added new video track');
+                                
+                                // RENEGOTIATE - create new offer with video
+                                const offer = await peerConnection.createOffer({
+                                    offerToReceiveAudio: true,
+                                    offerToReceiveVideo: true
+                                });
+                                await peerConnection.setLocalDescription(offer);
+                                
+                                // Send new offer to peer
+                                const targetUserId = currentUser.role === 'administrator' ? window.pendingCallerId : adminId;
+                                console.log('🎯 Renegotiation target:', targetUserId);
+                                
+                                if (targetUserId) {
+                                    await sendSignal(targetUserId, {
+                                        type: 'offer',
+                                        sdp: offer.sdp,
+                                        call_id: currentCallId
+                                    });
+                                    console.log('✅ Renegotiation offer sent');
+                                } else {
+                                    console.error('❌ No target user ID for renegotiation!');
+                                }
                             }
                         }
                     }
@@ -3699,7 +3775,7 @@
                     audioView.style.display = 'none';
                     videoBtn.classList.add('active');
                     
-                    console.log('📹 Video enabled');
+                    console.log('✅ Video enabled and shared');
                 } catch (error) {
                     console.error('Failed to enable video:', error);
                     showError('Failed to enable video. Please check camera permissions.');
