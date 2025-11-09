@@ -3062,8 +3062,11 @@
                 // Set up WebRTC with user (not admin)
                 await setupPeerConnectionForUser(userId);
                 
-                // Create and send offer
-                const offer = await peerConnection.createOffer();
+                // Create and send offer (include video constraint even if not enabled yet)
+                const offer = await peerConnection.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
                 await peerConnection.setLocalDescription(offer);
                 
                 // Send offer via signaling
@@ -3164,8 +3167,11 @@
                 // Set up WebRTC
                 await setupPeerConnection();
                 
-                // Create and send offer
-                const offer = await peerConnection.createOffer();
+                // Create and send offer (include video constraint even if not enabled yet)
+                const offer = await peerConnection.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
                 await peerConnection.setLocalDescription(offer);
                 
                 // Send offer via signaling
@@ -3429,8 +3435,11 @@
                         }));
                         console.log('✅ Remote description set');
                         
-                        // Create answer
-                        const answer = await peerConnection.createAnswer();
+                        // Create answer (with video support)
+                        const answer = await peerConnection.createAnswer({
+                            offerToReceiveAudio: true,
+                            offerToReceiveVideo: true
+                        });
                         await peerConnection.setLocalDescription(answer);
                         console.log('✅ Local description set');
                         
@@ -3582,8 +3591,11 @@
                     sdp: window.pendingOffer.sdp
                 }));
                 
-                // Create answer
-                const answer = await peerConnection.createAnswer();
+                // Create answer (with video support)
+                const answer = await peerConnection.createAnswer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
                 await peerConnection.setLocalDescription(answer);
                 
                 // Send answer back
@@ -3775,7 +3787,10 @@
                             console.log('📹 Added new video track');
                             
                             // RENEGOTIATE - create new offer with video
-                            const offer = await peerConnection.createOffer();
+                            const offer = await peerConnection.createOffer({
+                                offerToReceiveAudio: true,
+                                offerToReceiveVideo: true
+                            });
                             await peerConnection.setLocalDescription(offer);
                             
                             // Send new offer to peer
