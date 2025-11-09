@@ -1068,6 +1068,55 @@
         
         /* Mobile responsive video */
         @media (max-width: 768px) {
+            /* Mobile: Stack admin panel and chat vertically */
+            .container > div > div:first-child {
+                flex-direction: column !important;
+            }
+            
+            /* Admin panel takes less height on mobile */
+            #admin-panel {
+                width: 100% !important;
+                max-height: 40vh;
+                overflow-y: auto;
+                border-right: none !important;
+                border-bottom: 2px solid #667eea;
+            }
+            
+            /* User list items on mobile */
+            .user-item {
+                padding: 12px;
+                font-size: 0.9em;
+            }
+            
+            .user-name {
+                font-size: 0.95em;
+            }
+            
+            .last-message-time {
+                font-size: 0.75em;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 150px;
+            }
+            
+            /* Call button visible on mobile */
+            .call-button {
+                min-width: 36px;
+                height: 36px;
+                font-size: 16px;
+                padding: 6px;
+                flex-shrink: 0;
+                margin-left: auto;
+            }
+            
+            /* Messages container takes remaining space */
+            .messages-container {
+                flex: 1;
+                max-height: 60vh;
+            }
+            
+            /* Video calls on mobile */
             .video-container {
                 height: 300px;
                 max-width: 100%;
@@ -1089,6 +1138,11 @@
                 width: 50px;
                 height: 50px;
                 font-size: 1.2em;
+            }
+            
+            /* Hide resize handle on mobile */
+            .resize-handle {
+                display: none !important;
             }
         }
         
@@ -1771,23 +1825,26 @@
                 const now = new Date();
                 const diff = now - date;
                 const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
                 
                 if (days === 0) {
-                    // Today - show time
-                    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    // Today - show "Today" + time
+                    return `Today ${time}`;
                 } else if (days === 1) {
                     // Yesterday - show "Yesterday" + time
-                    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
                     return `Yesterday ${time}`;
                 } else if (days < 7) {
-                    // This week - show weekday + time
+                    // This week - show weekday + date + time
                     const weekday = date.toLocaleDateString([], { weekday: 'short' });
-                    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-                    return `${weekday} ${time}`;
-                } else {
-                    // Older - show full date + time
                     const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-                    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    return `${weekday}, ${dateStr} ${time}`;
+                } else if (days < 365) {
+                    // This year - show month + day + time
+                    const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                    return `${dateStr} ${time}`;
+                } else {
+                    // Older than a year - show full date + time
+                    const dateStr = date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
                     return `${dateStr} ${time}`;
                 }
             } catch (error) {
