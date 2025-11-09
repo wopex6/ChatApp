@@ -853,21 +853,30 @@
         
         /* Voice Call Styles */
         .call-button {
-            background: transparent;
+            background: #4caf50;
             border: none;
-            padding: 8px;
+            padding: 8px 12px;
             cursor: pointer;
-            font-size: 20px;
-            transition: transform 0.2s;
+            font-size: 18px;
+            border-radius: 50%;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .call-button:hover {
-            transform: scale(1.2);
+            transform: scale(1.1);
+            background: #45a049;
         }
         
         .call-button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            background: #cccccc;
         }
         
         .status-indicator {
@@ -1764,13 +1773,22 @@
                 const days = Math.floor(diff / (1000 * 60 * 60 * 24));
                 
                 if (days === 0) {
+                    // Today - show time
                     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
                 } else if (days === 1) {
-                    return 'Yesterday';
+                    // Yesterday - show "Yesterday" + time
+                    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    return `Yesterday ${time}`;
                 } else if (days < 7) {
-                    return `${days} days ago`;
+                    // This week - show weekday + time
+                    const weekday = date.toLocaleDateString([], { weekday: 'short' });
+                    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    return `${weekday} ${time}`;
                 } else {
-                    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                    // Older - show full date + time
+                    const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                    return `${dateStr} ${time}`;
                 }
             } catch (error) {
                 console.error('formatTimestamp error:', error, timestamp);
