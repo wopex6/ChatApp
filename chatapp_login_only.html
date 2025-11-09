@@ -1116,6 +1116,19 @@
                 max-height: 60vh;
             }
             
+            /* Chat area visible indicator on mobile */
+            #chat-area {
+                border-left: 3px solid #667eea;
+            }
+            
+            /* Messages title always visible on mobile */
+            #messages-title {
+                display: block !important;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+            
             /* Video calls on mobile */
             .video-container {
                 height: 300px;
@@ -1277,7 +1290,12 @@
                     </div>
 
                     <!-- Main Chat Area -->
-                    <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+                    <div id="chat-area" style="flex: 1; display: flex; flex-direction: column; min-width: 0; background: #fff;">
+                        <!-- Messages Title Bar (visible on mobile) -->
+                        <div id="messages-title" style="display: none; padding: 10px 15px; background: #667eea; color: white; font-weight: 600; border-bottom: 2px solid #5568d3;">
+                            <span id="chat-username">Select a user</span>
+                        </div>
+                        
                         <!-- Messages -->
                         <div id="messages-container" class="messages-container">
                             <div class="loading">Loading messages...</div>
@@ -1901,6 +1919,12 @@
             selectedUserId = userId;
             document.getElementById('chat-title').textContent = '';
             document.getElementById('message-input-section').style.display = 'flex'; // Show input when user selected
+            
+            // Show messages title bar (especially helpful on mobile)
+            const messagesTitle = document.getElementById('messages-title');
+            const chatUsername = document.getElementById('chat-username');
+            if (messagesTitle) messagesTitle.style.display = 'block';
+            if (chatUsername) chatUsername.textContent = `Chat with ${username}`;
             
             // Clear any existing admin message interval
             if (adminMessageInterval) {
@@ -3533,10 +3557,10 @@
                 });
                 
                 // Show active call UI
-                currentCallState = 'connected';
+                currentCallState = 'connecting';  // Set to connecting, not connected yet!
                 
                 document.getElementById('active-call-name').textContent = 'User';
-                document.getElementById('active-call-status').textContent = 'Connected';
+                document.getElementById('active-call-status').textContent = 'Connecting...';
                 document.getElementById('active-call-modal').classList.add('show');
                 
                 startCallTimer();
