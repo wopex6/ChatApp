@@ -857,13 +857,14 @@ def debug_signals():
 # ============= Main =============
 
 if __name__ == '__main__':
-    print(f"Starting ChatApp server on port 5001...")
+    # Get port from environment variable (for Railway/Render) or use 5001 locally
+    port = int(os.environ.get('PORT', 5001))
+    print(f"Starting ChatApp server on port {port}...")
     print("=" * 50)
     print("📝 One-to-many messaging platform")
     print("👤 Ken Tse can chat with multiple users")
     print("💬 No AI - just human-to-human communication")
-    print("🌐 Server accessible on local network at: http://192.168.0.214:5001")
-    print("🌐 Server running on: http://localhost:5001")
+    print(f"🌐 Server running on: http://0.0.0.0:{port}")
     print("=" * 50)
     # Disable reloader to prevent multiple processes (needed for in-memory signal storage)
-    app.run(debug=True, host='0.0.0.0', port=5001, use_reloader=False)
+    app.run(debug=True, host='0.0.0.0', port=port, use_reloader=False)
