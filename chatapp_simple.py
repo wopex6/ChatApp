@@ -603,12 +603,17 @@ def favicon():
 
 @app.route('/')
 def index():
-    """Serve the main chat interface"""
-    return send_from_directory('.', 'chatapp_frontend.html')
+    """Serve the main chat interface (consolidated)"""
+    return send_from_directory('.', 'chatapp_login_only.html')
 
 @app.route('/user_logon')
 def user_logon():
-    """Serve the chat login interface (login-only, no signup)"""
+    """Serve the chat login interface (consolidated)"""
+    return send_from_directory('.', 'chatapp_login_only.html')
+
+@app.route('/signup')
+def signup_page():
+    """Serve the signup page (consolidated) - NOTE: function renamed to avoid conflict with /api/auth/signup"""
     return send_from_directory('.', 'chatapp_login_only.html')
 
 # ============= Voice Call & Status Endpoints =============

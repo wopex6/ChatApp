@@ -1208,8 +1208,11 @@
         <div class="content">
             <!-- Login Section -->
             <div id="auth-section" class="auth-section">
-                <h1 style="text-align: center; margin-bottom: 30px; color: #667eea;">💬 Login</h1>
-                
+                <div class="tabs">
+                    <button class="tab active" onclick="showLogin()">Login</button>
+                    <button class="tab" onclick="showSignup()">Sign Up</button>
+                </div>
+
                 <!-- Login Form -->
                 <form id="login-form" autocomplete="on" onsubmit="event.preventDefault(); login();">
                     <div class="form-group">
@@ -1228,11 +1231,36 @@
                         </div>
                     </div>
                     <button class="btn" type="submit">Login</button>
-                    
-                    <!-- Error/Success Messages (moved below button) -->
-                    <div id="error-message" class="error-message" style="margin-top: 15px;"></div>
-                    <div id="success-message" class="success-message" style="margin-top: 15px;"></div>
                 </form>
+
+                <!-- Signup Form -->
+                <form id="signup-form" style="display: none;" autocomplete="on" onsubmit="event.preventDefault(); signup();">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="signup-username" name="username" 
+                               placeholder="Choose username" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="signup-email" name="email" 
+                               placeholder="Enter email" autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="signup-password" name="new-password" 
+                                   placeholder="Choose password" autocomplete="new-password" style="padding-right: 60px;">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('signup-password', this)">
+                                Show
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn" type="submit">Sign Up</button>
+                </form>
+                
+                <!-- Error/Success Messages (outside forms, visible on both tabs) -->
+                <div id="error-message" class="error-message" style="margin-top: 15px;"></div>
+                <div id="success-message" class="success-message" style="margin-top: 15px;"></div>
             </div>
 
             <!-- Chat Section -->
