@@ -3907,8 +3907,23 @@
                 modal.classList.add('show');
                 
                 // Force visibility with inline styles (override any CSS)
+                // CRITICAL: Use z-index higher than eruda console (which uses 10000000)
                 debugLog('MODAL', 'Setting inline styles for visibility...');
-                modal.style.cssText = 'display: flex !important; z-index: 999999 !important; visibility: visible !important;';
+                modal.style.cssText = `
+                    display: flex !important; 
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    bottom: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    z-index: 99999999 !important; 
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    pointer-events: auto !important;
+                    background: rgba(0, 0, 0, 0.7) !important;
+                `.replace(/\s+/g, ' ');
                 
                 // Small delay to ensure styles are applied
                 setTimeout(() => {
@@ -3918,7 +3933,7 @@
                     
                     if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
                         debugLog('MODAL', '⚠️ Modal still not visible - emergency override');
-                        modal.setAttribute('style', 'display: flex !important; z-index: 999999 !important; visibility: visible !important; position: fixed !important;');
+                        modal.setAttribute('style', `display: flex !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important; z-index: 99999999 !important; visibility: visible !important; opacity: 1 !important; background: rgba(0, 0, 0, 0.7) !important;`);
                     }
                 }, 50);
                 
@@ -3926,6 +3941,14 @@
                 const rect = modal.getBoundingClientRect();
                 debugLog('MODAL', `Modal position: top=${rect.top}, left=${rect.left}, width=${rect.width}, height=${rect.height}`);
                 debugLog('MODAL', `Modal in viewport: ${rect.top >= 0 && rect.left >= 0 && rect.bottom <= window.innerHeight && rect.right <= window.innerWidth}`);
+                debugLog('MODAL', `Applied z-index: ${modal.style.zIndex || 'not set'}`);
+                
+                // Check if eruda console is present and might interfere
+                const erudaEl = document.querySelector('.eruda-container, #eruda');
+                if (erudaEl) {
+                    const erudaStyle = window.getComputedStyle(erudaEl);
+                    debugLog('MODAL', `⚠️ Eruda console detected - z-index: ${erudaStyle.zIndex}`);
+                }
                 
                 debugLog('MODAL', '✅ Incoming call modal shown successfully');
                 
