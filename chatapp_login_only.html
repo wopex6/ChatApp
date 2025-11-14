@@ -3170,7 +3170,11 @@
                 document.getElementById('active-call-name').textContent = username;
                 document.getElementById('active-call-status').textContent = 'Calling...';
                 document.getElementById('call-timer').textContent = '00:00';
-                document.getElementById('active-call-modal').classList.add('show');
+                
+                // CRITICAL: Remove inline styles from previous call before showing
+                const activeModal = document.getElementById('active-call-modal');
+                activeModal.removeAttribute('style'); // Remove display: none !important
+                activeModal.classList.add('show');
                 debugLog('CALL-INIT', '✅ Calling UI displayed');
                 
                 // Set up WebRTC with user (not admin)
@@ -4452,7 +4456,11 @@
             document.getElementById('active-call-name').textContent = adminName;
             document.getElementById('active-call-status').textContent = 'Calling...';
             document.getElementById('call-timer').textContent = '00:00';
-            document.getElementById('active-call-modal').classList.add('show');
+            
+            // CRITICAL: Remove inline styles from previous call before showing
+            const activeModal = document.getElementById('active-call-modal');
+            activeModal.removeAttribute('style'); // Remove display: none !important
+            activeModal.classList.add('show');
         }
 
         function startCallTimer() {
