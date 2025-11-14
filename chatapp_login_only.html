@@ -3575,7 +3575,7 @@
                 console.log('🎯 Offer received - Current call state:', currentCallState, 'Has peer:', !!peerConnection);
                 
                 // Check if this is a renegotiation (already in call)
-                if (currentCallState === 'connected' && peerConnection) {
+                if ((currentCallState === 'connected' || currentCallState === 'connecting') && peerConnection) {
                     console.log('🔄 RENEGOTIATION DETECTED - Processing video offer');
                     console.log('📝 Call ID:', currentCallId, 'From user:', fromUserId);
                     
