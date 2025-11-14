@@ -3429,13 +3429,16 @@
             peerConnection.onicecandidate = async (event) => {
                 if (event.candidate) {
                     iceCount++;
-                    debugLog('WEBRTC', `🧊 ICE candidate #${iceCount} for user ${remoteUserId}`);
+                    debugLog('WEBRTC', `🧊 ICE candidate #${iceCount} for user ${remoteUserId} (Type: ${typeof remoteUserId})`);
                     debugLog('WEBRTC', `Type: ${event.candidate.type}, Protocol: ${event.candidate.protocol}, Address: ${event.candidate.address || 'N/A'}`);
+                    console.log('📤 SENDING ICE CANDIDATE to user:', remoteUserId, 'Type:', typeof remoteUserId);
+                    console.log('📝 Call ID:', currentCallId);
                     await sendSignal(remoteUserId, {
                         type: 'ice',
                         candidate: event.candidate.toJSON(),
                         call_id: currentCallId
                     });
+                    console.log('✅ ICE candidate sent successfully');
                 } else {
                     debugLog('WEBRTC', `✅ ICE gathering complete. Total candidates: ${iceCount}`);
                 }
@@ -3705,7 +3708,17 @@
                 }
                 
             } else if (signal.type === 'ice') {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                console.log('🧊 RECEIVED ICE CANDIDATE from user:', fromUserId, 'Type:', typeof fromUserId);
+                console.log('🔗 Peer connection exists:', !!peerConnection, 'State:', peerConnection?.connectionState);
+                console.log('📊 Current call state:', currentCallState);
+                console.log('🧊 ICE candidate:', signal.candidate);
+                
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                    console.log('✅ ICE candidate added successfully');
+                } catch (error) {
+                    console.error('❌ Failed to add ICE candidate:', error);
+                }
             } else if (signal.type === 'hangup') {
                 debugLog('CALL-SIGNAL', `❌ Received hangup signal from user: ${fromUserId}`);
                 debugLog('CALL-SIGNAL', `Current call state: ${currentCallState}`);
