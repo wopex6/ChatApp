@@ -1485,6 +1485,7 @@
         let callTimeoutTimer = null;  // For call timeout handling
         let remoteUserId = null; // Track who we're in a call with for hangup signaling
         let adminId = null;  // Will be set on login
+        let pendingIceCandidates = []; // Buffer ICE candidates that arrive before peer connection is ready
 
         // Emoji list
         const emojis = ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','👍','👎','👊','✊','🤛','🤜','🤞','✌️','🤟','🤘','👌','🤌','🤏','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🖖','👋','🤙','💪','🙏','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','🎉','🎊','🎈','🎁','🏆','🥇','🥈','🥉','⭐','🌟','✨','💫','🔥','💯','✅','❌','⚠️','📌','📍','🔔','🔕','📢','📣'];
@@ -3513,7 +3514,36 @@
                 }
             };
             
+            // Process any buffered ICE candidates that arrived before peer connection was ready
+            await processPendingIceCandidates();
+            
             console.log('✅ Peer connection setup complete');
+        }
+
+        /**
+         * Process ICE candidates that were buffered before peer connection was ready
+         */
+        async function processPendingIceCandidates() {
+            if (pendingIceCandidates.length === 0) {
+                console.log('📦 No pending ICE candidates to process');
+                return;
+            }
+            
+            console.log(`📦 Processing ${pendingIceCandidates.length} buffered ICE candidates...`);
+            
+            for (const bufferedCandidate of pendingIceCandidates) {
+                console.log('🧊 Processing buffered ICE candidate from user:', bufferedCandidate.fromUserId);
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(bufferedCandidate.candidate));
+                    console.log('✅ Buffered ICE candidate added successfully');
+                } catch (error) {
+                    console.error('❌ Failed to add buffered ICE candidate:', error);
+                }
+            }
+            
+            // Clear the buffer
+            pendingIceCandidates = [];
+            console.log('📦 ICE candidate buffer cleared');
         }
 
         // ========== Signaling ==========
@@ -3712,6 +3742,16 @@
                 console.log('🔗 Peer connection exists:', !!peerConnection, 'State:', peerConnection?.connectionState);
                 console.log('📊 Current call state:', currentCallState);
                 console.log('🧊 ICE candidate:', signal.candidate);
+                
+                if (!peerConnection) {
+                    console.log('📦 BUFFERING ICE candidate - peer connection not ready yet');
+                    pendingIceCandidates.push({
+                        candidate: signal.candidate,
+                        fromUserId: fromUserId
+                    });
+                    console.log(`📦 Buffer now has ${pendingIceCandidates.length} pending ICE candidates`);
+                    return;
+                }
                 
                 try {
                     await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
@@ -4411,6 +4451,12 @@
                 clearTimeout(callTimeoutTimer);
                 callTimeoutTimer = null;
                 debugLog('CLEANUP', 'Call timeout cleared');
+            }
+            
+            // Clear any pending ICE candidates
+            if (pendingIceCandidates.length > 0) {
+                debugLog('CLEANUP', `Clearing ${pendingIceCandidates.length} pending ICE candidates`);
+                pendingIceCandidates = [];
             }
             
             // DON'T stop signal polling - keep it running for incoming calls!
